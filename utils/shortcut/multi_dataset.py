@@ -94,7 +94,7 @@ def load_tv_for_tickers(list_tickers, tv_features):
 def register_pos_data(sdh, use_dump=True):
     # Using existing data for reducing the amount of time for loading.
     if use_dump:
-        pos_df0 = pd.read_parquet('/efs/share/factset/pattaya/sample/jupyter/aiq_pos_csmr_goods_sample_index_shift.parquet', engine='pyarrow')
+        pos_df0 = pd.read_parquet('./data/aiq_pos_csmr_goods_sample_index_shift.parquet', engine='pyarrow')
     else:
         pos_df0 = load_pos_from_db(list_figis)
     pos_df0 = pos_df0[~pos_df0.index.get_level_values('ticker').isnull()]
@@ -104,7 +104,7 @@ def register_pos_data(sdh, use_dump=True):
 def register_market_prices(sdh, list_tickers=None, use_dump=True):
     # again we load the existing data for reducing the demo duration.
     if use_dump:
-        prices_df = pd.read_parquet('/efs/share/factset/pattaya/sample/jupyter/aiq_pos_csmr_goods_mkt_long.parquet', engine='pyarrow')
+        prices_df = pd.read_parquet('./data/aiq_pos_csmr_goods_mkt_long.parquet', engine='pyarrow')
     else:
         prices_df = load_market_prices(list_tickers, '2016-01-01')
         
@@ -115,7 +115,7 @@ def register_market_prices(sdh, list_tickers=None, use_dump=True):
 
 def register_tv(sdh, list_tickers=None, use_dump=True):
     if use_dump:
-        merged_tv = pd.read_parquet('/efs/share/factset/pattaya/sample/jupyter/aiq_pos_csmr_goods_tv.parquet', engine='pyarrow')
+        merged_tv = pd.read_parquet('./data/aiq_pos_csmr_goods_tv.parquet', engine='pyarrow')
     else:
         tv_features = [
             ('TV_ESG_RANKS', 'MATERIALITY_ADJ_INSIGHT'),
@@ -133,7 +133,7 @@ def register_tv(sdh, list_tickers=None, use_dump=True):
 
 def register_quants_factors(sdh, list_tickers=None, use_dump=True):
     if use_dump:
-        factors266 = pd.read_parquet('/efs/share/factset/pattaya/sample/jupyter/aiq_pos_csmr_goods_factors.parquet', engine='pyarrow') 
+        factors266 = pd.read_parquet('./data/aiq_pos_csmr_goods_factors.parquet', engine='pyarrow') 
     else:
         factors266 = load_quants_factors(list_tickers, '2016-01-01')
 
