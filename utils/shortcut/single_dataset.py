@@ -108,4 +108,35 @@ def register_market_data(sdh, factset_symbols: pd.DataFrame=None, use_dump=True)
     )
 
 
+def __filter_to_latest_releases(
+    df: pd.DataFrame
+) -> pd.DataFrame:
+    df.set_index(
+        ['ticker', 'datetime', 'variable', 'SMOOTH', 'release_timestamp'],
+        inplace=True)
+    df = df.xs(0, level='SMOOTH').drop(['backfill'], axis=1)
+    df = df.sort_index()
+    df.reset_index('release_timestamp', drop=False, inplace=True)
+    df = df.loc[~df.index.duplicated(keep='last')]
+    df.drop(['release_timestamp'], axis=1, inplace=True)
+    df = df.unstack('variable')['values']
+    return df
 
+
+def register_elec_data(sdh) -> int:
+    path_to_csv = './data/20240312_pos_elec_goods_stack.csv'
+    dfpos = pd.read_csv(
+        path_to_csv, dtype={'ticker': str, 'SMOOTH': int},
+        parse_dates=['datetime', 'release_timestamp'])
+    dfpos = __filter_to_latest_releases(dfpos)
+    dfpos.index = pd.MultiIndex.from_tuples(
+        [(f"{t} JP", dt) for t, dt in dfpos.index], names=dfpos.index.names)
+    dfpos['sales*uprice'] = dfpos['pos_sales'] * dfpos['unit_price']
+    data_id = sdh.set_raw_data(dfpos)
+    return data_id
+
+
+if __name__ == "__main__":
+    from aiq_strategy_robot.data.data_accessor import DAL
+    sdh = DAL()
+    data_id_alt = register_elec_data(sdh)
