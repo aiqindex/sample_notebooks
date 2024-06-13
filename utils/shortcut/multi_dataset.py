@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 from aiq_strategy_robot.data.data_accessor import DAL
@@ -91,20 +92,20 @@ def load_tv_for_tickers(list_tickers, tv_features):
     return merged_tv
 
 
-def register_pos_data(sdh, use_dump=True):
+def register_pos_data(sdh, use_dump=True, data_dir='./data'):
     # Using existing data for reducing the amount of time for loading.
     if use_dump:
-        pos_df0 = pd.read_parquet('./data/aiq_pos_csmr_goods_sample_index_shift.parquet', engine='pyarrow')
+        pos_df0 = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_sample_index_shift.parquet'), engine='pyarrow')
     else:
         pos_df0 = load_pos_from_db(list_figis)
     pos_df0 = pos_df0[~pos_df0.index.get_level_values('ticker').isnull()]
     data_id_pos = sdh.set_raw_data(pos_df0, data_source='ALTERNATIVE', source='aiq_pos_csmr_goods')
     return data_id_pos
     
-def register_market_prices(sdh, list_tickers=None, use_dump=True):
+def register_market_prices(sdh, list_tickers=None, use_dump=True, data_dir='./data'):
     # again we load the existing data for reducing the demo duration.
     if use_dump:
-        prices_df = pd.read_parquet('./data/aiq_pos_csmr_goods_mkt_long.parquet', engine='pyarrow')
+        prices_df = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_mkt_long.parquet'), engine='pyarrow')
     else:
         prices_df = load_market_prices(list_tickers, '2016-01-01')
         
@@ -113,9 +114,9 @@ def register_market_prices(sdh, list_tickers=None, use_dump=True):
     return data_id_price
     
 
-def register_tv(sdh, list_tickers=None, use_dump=True):
+def register_tv(sdh, list_tickers=None, use_dump=True, data_dir='./data'):
     if use_dump:
-        merged_tv = pd.read_parquet('./data/aiq_pos_csmr_goods_tv.parquet', engine='pyarrow')
+        merged_tv = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_tv.parquet'), engine='pyarrow')
     else:
         tv_features = [
             ('TV_ESG_RANKS', 'MATERIALITY_ADJ_INSIGHT'),
@@ -131,9 +132,9 @@ def register_tv(sdh, list_tickers=None, use_dump=True):
     data_id_tv = sdh.set_raw_data(merged_tv, data_source='FACTSET', source='TrueValue')
     return data_id_tv
 
-def register_quants_factors(sdh, list_tickers=None, use_dump=True):
+def register_quants_factors(sdh, list_tickers=None, use_dump=True, data_dir='./data'):
     if use_dump:
-        factors266 = pd.read_parquet('./data/aiq_pos_csmr_goods_factors.parquet', engine='pyarrow') 
+        factors266 = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_factors.parquet'), engine='pyarrow') 
     else:
         factors266 = load_quants_factors(list_tickers, '2016-01-01')
 
