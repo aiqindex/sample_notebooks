@@ -131,7 +131,6 @@ def register_elec_data(sdh) -> int:
     dfpos = __filter_to_latest_releases(dfpos)
     dfpos.index = pd.MultiIndex.from_tuples(
         [(f"{t} JP", dt) for t, dt in dfpos.index], names=dfpos.index.names)
-    dfpos['sales*uprice'] = dfpos['pos_sales'] * dfpos['unit_price']
     data_id = sdh.set_raw_data(dfpos)
     return data_id
 
