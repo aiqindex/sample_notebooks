@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pandas as pd
 
@@ -5,6 +7,21 @@ from aiq_strategy_robot.data.data_accessor import DAL
 from aiq_strategy_robot.data.ALTERNATIVE import load_alternative_aiq_pos_csmr_goods_universe
 from aiq_strategy_robot.data.ALTERNATIVE import load_alternative_aiq_pos_csmr_goods_data
 from aiq_strategy_robot.data.FACTSET import load_factset_symbol_lookup
+
+from aiq_strategy_robot.data.FINNHUB import load_finnhub_symbol_lookup, load_finnhub_equity_data, load_finnhub_fundamental
+from aiq_strategy_robot.data.ALTERNATIVE import load_alternative_aiq_pos_csmr_goods_data, load_alternative_aiq_pos_csmr_goods_universe
+
+
+
+DEFAULT_DIR = '/efs/share/factset/pattaya/sample/jupyter/'
+
+
+#########################################################################
+# データファイルによるデータ取得 
+# markt        = factset
+# fundamental  = factset
+# alternative  = aiQ csmr Googds
+#########################################################################
 
 sdh = DAL()
 sdh = load_alternative_aiq_pos_csmr_goods_universe(sdh)
@@ -31,27 +48,9 @@ def get_factset_symbols(sdh, list_figis):
     return dfsyms2
 
 # Load Alternative Data
-def register_alt_data(sdh, list_figis=None, factset_symbols: pd.DataFrame=None, use_dump=True) -> int:
+def register_alt_data(sdh, data_dir) -> int:
     # loading from csv to save time for this demo
-    if use_dump:
-        df_pos = pd.read_parquet('/efs/share/factset/pattaya/sample/jupyter/aiq_pos_csmr_goods_sample_index.parquet')
-    else:
-        assert factset_symbols is not None, '`factset_symbols` must be set with `list_figis`.'
-        sdh = load_alternative_aiq_pos_csmr_goods_data(
-            sdh,
-            generation=2,
-            figi=list_figis,
-            load_only_raw=True,
-            load_only_latest=True
-        )
-        df_pos = sdh.retrieve()
-        df_pos = df_pos.rename(columns = {'TICKER':'seccode'})
-        df_pos = df_pos.merge(factset_symbols[['seccode', 'TICKER']], on='seccode', how='inner').drop(['seccode'], axis=1)
-        df_pos = df_pos.rename(columns={'TICKER': 'ticker', 'DATETIME': 'datetime'})
-        df_pos['datetime'] = pd.to_datetime(df_pos['datetime'])
-        df_pos = df_pos.set_index(['ticker', 'datetime'])
-        df_pos = df_pos.pivot(columns='VARIABLE', values='VALUE')
-        df_pos.columns.name = ''
+    df_pos = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_sample_index.parquet'), engine='pyarrow')
       
     return sdh.set_raw_data(
         data_source='external',
@@ -59,49 +58,16 @@ def register_alt_data(sdh, list_figis=None, factset_symbols: pd.DataFrame=None, 
     )
 
 # Load Fundamental Data
-def register_fundamental_data(sdh, factset_symbols: pd.DataFrame=None, use_dump=True) -> int:
-    if use_dump:
-        df_fundamental = pd.read_parquet('/efs/share/factset/pattaya/sample/jupyter/aiq_pos_csmr_goods_fundamental.parquet', engine='pyarrow')
-    else:
-        start_datetime = sdh.extract_definition.loc[data_id_alt]['start_datetime'].split('T')[0]
-        sdh = sdh.load(
-            'FACTSET',
-            data_type='fundamental',
-            symbols=factset_symbols['FSYM_ID'].unique().tolist(),
-            freq=3,
-            start_datetime=start_datetime
-        )
-        df_fundamental = sdh.retrieve(pick_cols=['FSYM_ID', 'DATE', 'FF_FPNC', 'FF_SALES'])
-        df_fundamental = df_fundamental.merge(factset_symbols[['FSYM_ID', 'TICKER']], on='FSYM_ID', how='left')
-        df_fundamental = df_fundamental.sort_values(['TICKER', 'DATE'], ascending=[True, True])
-        df_fundamental = df_fundamental[['TICKER', 'DATE', 'FF_SALES']].rename(columns={'TICKER': 'ticker', 'DATE': 'datetime', 'FF_SALES': 'sales'})
-        df_fundamental['datetime'] = pd.to_datetime(df_fundamental['datetime'])
-        df_fundamental = df_fundamental.set_index(['ticker', 'datetime'])
-        df_fundamental.to_parquet('aiq_pos_csmr_goods_fundamental.parquet', engine='pyarrow')
-
+def register_fundamental_data(sdh, data_dir) -> int:
+    df_fundamental = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_fundamental.parquet'), engine='pyarrow')
     return sdh.set_raw_data(
         data_source='external',
         dfraw=df_fundamental
     )
 
 # Load market data
-def register_market_data(sdh, factset_symbols: pd.DataFrame=None, use_dump=True) -> int:
-    if use_dump:
-        dfmkt = pd.read_parquet('/efs/share/factset/pattaya/sample/jupyter/aiq_pos_csmr_goods_mkt.parquet', engine='pyarrow')
-    else:
-        dfmkt = sdh.load(
-            'FACTSET',
-            data_type='gpd_prices',
-            ids=factset_symbols['TICKER'].unique().tolist(),
-            start_date=start_datetime,
-            adjust='SPLIT',
-            fields=['price', 'vwap', 'volume', 'turnover']
-        ).retrieve()
-        dfmkt = dfmkt.reset_index().rename(columns={'DATETIME': 'datetime'})
-        dfmkt['datetime'] = pd.to_datetime(dfmkt['datetime'])
-        dfmkt = dfmkt.set_index(['ticker', 'datetime'])[['close']]
-        dfmkt.to_parquet('aiq_pos_csmr_goods_mkt.parquet', engine='pyarrow')
-
+def register_market_data(sdh, data_dir) -> int:
+    dfmkt = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_mkt.parquet'), engine='pyarrow')
     return sdh.set_raw_data(
         data_source='external',
         dfraw=dfmkt
@@ -109,3 +75,149 @@ def register_market_data(sdh, factset_symbols: pd.DataFrame=None, use_dump=True)
 
 
 
+
+def load_data_fiels(sdh, data_dir=DEFAULT_DIR):
+
+    #  Load Alternative Data
+    data_id_alt = register_alt_data(sdh, data_dir=data_dir)
+
+    #  Load Fundamental Data
+    data_id_funda = register_fundamental_data(sdh, data_dir=data_dir)
+
+    # Load market data
+    data_id_mkt = register_market_data(sdh, data_dir=data_dir)
+
+
+    # Set Alias (Optional)
+    sdh.set_alias({
+        data_id_alt: 'aiq_pos_csmr_goods',
+        data_id_funda: 'sales',
+        data_id_mkt: 'market'
+    })
+
+
+
+#########################################################################
+# データローダーによるデータ取得 
+# markt        = finnhub
+# fundamental  = finnhub
+# alternative  = aiQ csmr Googds
+#########################################################################
+
+def get_finnhub_symbol(exchange_code='T'):
+    dffinn_symbol = load_finnhub_symbol_lookup(
+        DAL(),
+        exchange_code=exchange_code
+    ).retrieve()
+    dffinn_symbol.head()
+    return dffinn_symbol
+
+def get_pos_symbol(finn_sym):
+    dfuniverse = load_alternative_aiq_pos_csmr_goods_universe(
+        DAL(), 
+        ticker=finn_sym.symbol.str.split('.').str[0].to_list()
+    ).retrieve()
+    dfuniverse.head()
+    return dfuniverse
+
+
+def merget_symbols(fin_sym, pos_sym, limit=10):
+    pos_sym.columns = ['pos_figi', 'pos_ticker']
+    pos_sym['finn_symbol'] = pos_sym.pos_ticker + '.T'
+    fin_sym = fin_sym[['symbol', 'ticker']]
+    fin_sym.columns = ['finn_symbol', 'finn_ticker']
+    dfuniverse = pd.merge(pos_sym, fin_sym, on=['finn_symbol'])
+    dfuniverse = dfuniverse.iloc[:limit]
+    return dfuniverse
+
+def load_finnhub_prices(sdh, dfuniverse, start_date, end_date):
+    load_finnhub_equity_data(
+        sdh,
+        symbols=dfuniverse.finn_symbol.to_list(),
+        freq='D',
+        start_datetime=start_date, 
+        end_datetime=end_date
+    )
+
+def load_finhub_funda(sdh, dfuniverse, start_date, end_date):
+    load_finnhub_fundamental(
+        sdh,
+        symbols=dfuniverse.finn_symbol.to_list(),
+        st_type='ic', 
+        freq='quarterly', 
+        start_datetime=start_date, 
+        end_datetime=end_date,
+        with_calendar=True
+    ).retrieve()
+
+
+def load_pos_data(sdh, dfuniverse):
+    dfpos = load_alternative_aiq_pos_csmr_goods_data(
+        DAL(),
+        generation=2,
+        ticker=dfuniverse.pos_ticker.to_list(),
+        load_only_raw=True,
+        load_only_latest=True
+    ).retrieve()
+
+    dfpos = dfpos.merge(dfuniverse[['pos_ticker', 'finn_ticker']], left_on='TICKER', right_on='pos_ticker', how='inner'
+                         ).drop(['pos_ticker', 'TICKER'], axis=1)
+    dfpos = dfpos.rename(columns={'finn_ticker': 'ticker', 'DATETIME': 'datetime'})
+    dfpos['datetime'] = pd.to_datetime(dfpos['datetime'])
+    dfpos = dfpos.set_index(['ticker', 'datetime'])
+    dfpos = dfpos.pivot(columns='VARIABLE', values='VALUE')
+    dfpos.columns.name = ''
+
+    sdh.set_raw_data(dfraw=dfpos, data_source='aiq_pos_csmr_goods')
+
+
+
+def load_acquirer_data(sdh, start_date, end_date, exchange_code='T', limit=10):
+
+    finn_sym = get_finnhub_symbol(exchange_code)
+    pos_sym = get_pos_symbol(finn_sym)
+
+    dfuniverse = merget_symbols(finn_sym, pos_sym, limit=limit)
+
+    load_pos_data(sdh, dfuniverse)
+    load_finhub_funda(sdh, dfuniverse, start_date, end_date)
+    load_finnhub_prices(sdh, dfuniverse, start_date, end_date)
+
+    # 使用するデータIDを取得
+    data_id_alt = 1
+    data_id_funda = 2
+    data_id_mkt = 3
+    
+    # Set Alias (Optional)
+    sdh.set_alias({
+        data_id_alt: 'aiq_pos_csmr_goods',
+        data_id_funda: 'revenue',
+        data_id_mkt: 'market'
+    })
+
+
+
+def load_sample_dataset(sdh, *, exchange_code: str = 'T', limit: int = 20, start_date='2015-09-30', end_date='2024-06-01', data_dir: str =None):
+    """ サンプルデータのロード
+
+    Parameters
+    ----------
+    sdh : StdDataHandler
+        データハンドラー
+    exchange_code : str, optional
+        exchange code of finnhub. data_dir=Noneの場合に有効, by default 'T'
+    limit : int, optional
+        データ取得件数. data_dir=Noneの場合に有効, by default 20
+    data_dir : str, optional
+        データパス. 指定の場合はデータファイルからの読み込み, by default None
+
+    start_data: str, optional
+        データ開始日. data_dir=Noneの場合に有効, by default '2015-09-30'
+    end_date: str, optional
+        データ終了日. data_dir=Noneの場合に有効, by default '2015-09-30'
+    """
+    if data_dir:
+        load_data_fiels(sdh, data_dir=data_dir)
+    else:
+        load_acquirer_data(sdh, start_date, end_date, exchange_code, limit=limit)
+    
