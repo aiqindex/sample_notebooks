@@ -130,7 +130,7 @@ def register_elec_data(sdh) -> int:
         parse_dates=['datetime', 'release_timestamp'])
     dfpos = __filter_to_latest_releases(dfpos)
     dfpos.index = pd.MultiIndex.from_tuples(
-        [(f"{t} JP", dt) for t, dt in dfpos.index], names=dfpos.index.names)
+        [(f"{t}-JP", dt) for t, dt in dfpos.index], names=dfpos.index.names)
     data_id = sdh.set_raw_data(dfpos)
     return data_id
 
