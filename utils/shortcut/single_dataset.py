@@ -34,7 +34,7 @@ def get_factset_symbols(sdh, list_figis):
 def register_alt_data(sdh, list_figis=None, factset_symbols: pd.DataFrame=None, use_dump=True) -> int:
     # loading from csv to save time for this demo
     if use_dump:
-        df_pos = pd.read_parquet('./data/aiq_pos_csmr_goods_sample_index.parquet')
+        df_pos = pd.read_parquet('/efs/share/factset/pattaya/sample/jupyter/aiq_pos_csmr_goods_sample_index.parquet')
     else:
         assert factset_symbols is not None, '`factset_symbols` must be set with `list_figis`.'
         sdh = load_alternative_aiq_pos_csmr_goods_data(
@@ -61,7 +61,7 @@ def register_alt_data(sdh, list_figis=None, factset_symbols: pd.DataFrame=None, 
 # Load Fundamental Data
 def register_fundamental_data(sdh, factset_symbols: pd.DataFrame=None, use_dump=True) -> int:
     if use_dump:
-        df_fundamental = pd.read_parquet('./data/aiq_pos_csmr_goods_fundamental.parquet', engine='pyarrow')
+        df_fundamental = pd.read_parquet('/efs/share/factset/pattaya/sample/jupyter/aiq_pos_csmr_goods_fundamental.parquet', engine='pyarrow')
     else:
         start_datetime = sdh.extract_definition.loc[data_id_alt]['start_datetime'].split('T')[0]
         sdh = sdh.load(
@@ -87,7 +87,7 @@ def register_fundamental_data(sdh, factset_symbols: pd.DataFrame=None, use_dump=
 # Load market data
 def register_market_data(sdh, factset_symbols: pd.DataFrame=None, use_dump=True) -> int:
     if use_dump:
-        dfmkt = pd.read_parquet('./data/aiq_pos_csmr_goods_mkt.parquet', engine='pyarrow')
+        dfmkt = pd.read_parquet('/efs/share/factset/pattaya/sample/jupyter/aiq_pos_csmr_goods_mkt.parquet', engine='pyarrow')
     else:
         dfmkt = sdh.load(
             'FACTSET',
