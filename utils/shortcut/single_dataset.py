@@ -1,5 +1,4 @@
 import os
-
 import numpy as np
 import pandas as pd
 
@@ -54,7 +53,8 @@ def register_alt_data(sdh, data_dir) -> int:
       
     return sdh.set_raw_data(
         data_source='external',
-        dfraw=df_pos
+        dfraw=df_pos,
+        source='sample'
     )
 
 # Load Fundamental Data
@@ -62,7 +62,8 @@ def register_fundamental_data(sdh, data_dir) -> int:
     df_fundamental = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_fundamental.parquet'), engine='pyarrow')
     return sdh.set_raw_data(
         data_source='external',
-        dfraw=df_fundamental
+        dfraw=df_fundamental,
+        source='sample'
     )
 
 # Load market data
@@ -70,7 +71,8 @@ def register_market_data(sdh, data_dir) -> int:
     dfmkt = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_mkt.parquet'), engine='pyarrow')
     return sdh.set_raw_data(
         data_source='external',
-        dfraw=dfmkt
+        dfraw=dfmkt,
+        source='sample'
     )
 
 
@@ -121,13 +123,16 @@ def get_pos_symbol(finn_sym):
     return dfuniverse
 
 
+DEFAULT_SAMPLE = "2281 JP"
+
 def merget_symbols(fin_sym, pos_sym, limit=10):
     pos_sym.columns = ['pos_figi', 'pos_ticker']
     pos_sym['finn_symbol'] = pos_sym.pos_ticker + '.T'
     fin_sym = fin_sym[['symbol', 'ticker']]
     fin_sym.columns = ['finn_symbol', 'finn_ticker']
     dfuniverse = pd.merge(pos_sym, fin_sym, on=['finn_symbol'])
-    dfuniverse = dfuniverse.iloc[:limit]
+    sample = dfuniverse.loc[dfuniverse.finn_ticker == DEFAULT_SAMPLE]
+    dfuniverse = pd.concat([sample, dfuniverse.iloc[:limit-1]])
     return dfuniverse
 
 def load_finnhub_prices(sdh, dfuniverse, start_date, end_date):
@@ -217,7 +222,7 @@ def load_sample_dataset(sdh, *, exchange_code: str = 'T', limit: int = 20, start
         データ終了日. data_dir=Noneの場合に有効, by default '2015-09-30'
     """
     if data_dir:
-        load_data_fiels(sdh, data_dir=data_dir)
+        return load_data_fiels(sdh, data_dir=data_dir)
     else:
-        load_acquirer_data(sdh, start_date, end_date, exchange_code, limit=limit)
+        return load_acquirer_data(sdh, start_date, end_date, exchange_code, limit=limit)
     
