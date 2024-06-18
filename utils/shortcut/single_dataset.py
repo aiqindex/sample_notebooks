@@ -133,7 +133,7 @@ def merget_symbols(fin_sym, pos_sym, limit=10):
     dfuniverse = pd.merge(pos_sym, fin_sym, on=['finn_symbol'])
     sample = dfuniverse.loc[dfuniverse.finn_ticker == DEFAULT_SAMPLE]
     dfuniverse = pd.concat([sample, dfuniverse.loc[
-        dfuniverse.finn_ticker.isin([DEFAULT_SAMPLE])].iloc[:limit-1]])
+        ~dfuniverse.finn_ticker.isin([DEFAULT_SAMPLE])].iloc[:limit-1]])
     return dfuniverse
 
 def load_finnhub_prices(sdh, dfuniverse, start_date, end_date):
