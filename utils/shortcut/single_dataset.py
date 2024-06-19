@@ -9,10 +9,9 @@ from aiq_strategy_robot.data.FACTSET import load_factset_symbol_lookup
 
 from aiq_strategy_robot.data.FINNHUB import load_finnhub_symbol_lookup, load_finnhub_equity_data, load_finnhub_fundamental
 from aiq_strategy_robot.data.ALTERNATIVE import load_alternative_aiq_pos_csmr_goods_data, load_alternative_aiq_pos_csmr_goods_universe
+from .path import DEFAULT_DIR
 
 
-
-DEFAULT_DIR = '/efs/share/factset/pattaya/sample/jupyter/'
 
 
 #########################################################################
@@ -47,7 +46,7 @@ def get_factset_symbols(sdh, list_figis):
     return dfsyms2
 
 # Load Alternative Data
-def register_alt_data(sdh, data_dir) -> int:
+def register_alt_data(sdh, data_dir=DEFAULT_DIR) -> int:
     # loading from csv to save time for this demo
     df_pos = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_sample_index.parquet'), engine='pyarrow')
       
@@ -58,7 +57,7 @@ def register_alt_data(sdh, data_dir) -> int:
     )
 
 # Load Fundamental Data
-def register_fundamental_data(sdh, data_dir) -> int:
+def register_fundamental_data(sdh, data_dir=DEFAULT_DIR) -> int:
     df_fundamental = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_fundamental.parquet'), engine='pyarrow')
     return sdh.set_raw_data(
         data_source='external',
@@ -67,7 +66,7 @@ def register_fundamental_data(sdh, data_dir) -> int:
     )
 
 # Load market data
-def register_market_data(sdh, data_dir) -> int:
+def register_market_data(sdh, data_dir=DEFAULT_DIR) -> int:
     dfmkt = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_mkt.parquet'), engine='pyarrow')
     return sdh.set_raw_data(
         data_source='external',
