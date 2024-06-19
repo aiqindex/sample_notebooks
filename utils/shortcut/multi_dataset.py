@@ -1,10 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
-
-
-DEFAULT_DIR = '/efs/share/factset/pattaya/sample/jupyter/'
-
+from .path import DEFAULT_DIR
 
 def register_pos_data(sdh, data_dir=DEFAULT_DIR):
     # Using existing data for reducing the amount of time for loading.
