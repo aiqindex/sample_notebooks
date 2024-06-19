@@ -9,10 +9,9 @@ from aiq_strategy_robot.data.FACTSET import load_factset_symbol_lookup
 
 from aiq_strategy_robot.data.FINNHUB import load_finnhub_symbol_lookup, load_finnhub_equity_data, load_finnhub_fundamental
 from aiq_strategy_robot.data.ALTERNATIVE import load_alternative_aiq_pos_csmr_goods_data, load_alternative_aiq_pos_csmr_goods_universe
+from .path import DEFAULT_DIR
 
 
-
-DEFAULT_DIR = '/efs/share/factset/pattaya/sample/jupyter/'
 
 
 #########################################################################
