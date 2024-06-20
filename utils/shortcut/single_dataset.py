@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
+from pathlib import Path
 from typing import List, Optional
 
 from aiq_strategy_robot.data.data_accessor import DAL
@@ -91,8 +92,11 @@ def __filter_to_latest_releases(
     return df
 
 
-def register_elec_data(sdh) -> int:
-    path_to_csv = './data/20240312_pos_elec_goods_stack.csv'
+def register_elec_data(
+        sdh,
+        data_dir: str
+        ) -> int:
+    path_to_csv = Path(data_dir) / '20240312_pos_elec_goods_stack.csv'
     dfpos = pd.read_csv(
         path_to_csv, dtype={'ticker': str, 'SMOOTH': int},
         parse_dates=['datetime', 'release_timestamp'])
