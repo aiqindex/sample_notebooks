@@ -24,7 +24,7 @@ def filter_to_latest_releases(
 
 def read_pos_retailer(dir_path=DEFAULT_DIR):
     # Reading from CSV file
-    path_to_gen1_csv = os.path.join(dir_path, 'aiq_pos_csmr_retailer/20240312_pos_retailer_stack.csv')
+    path_to_gen1_csv = os.path.join(dir_path, '20240312_pos_retailer_stack.csv')
     assert path_to_gen1_csv!='', 'Please provide the path to the CSV file'
     df_inc1 = pd.read_csv(path_to_gen1_csv, dtype={'ticker': str, 'SMOOTH': int}, parse_dates=['datetime', 'release_timestamp'])
     df_inc1 = df_inc1.drop('Unnamed: 0', axis=1)
@@ -65,12 +65,10 @@ def laod_finnhub_prices(sdh, dffinn_sym, start_datetime, end_datetime):
 def load_finhub_funda(sdh, dffinn_sym, start_datetime, end_datetime, dir_path):
 
     if dir_path:
-        dffunda = pd.read_parquet(os.path.join(dir_path, 'aiq_pos_csmr_retailer/funda.parquet'))
+        dffunda = pd.read_parquet(os.path.join(dir_path, 'aiq_pos_csmr_retailer_funda.parquet'))
         sdh.set_raw_data(dfraw=dffunda, data_source='finnhub', source='fundamental')
         return dffunda
     else:
-
-
         return load_finnhub_fundamental(
             sdh,
             symbols=dffinn_sym.symbol.to_list(),
@@ -84,29 +82,23 @@ def load_finhub_funda(sdh, dffinn_sym, start_datetime, end_datetime, dir_path):
 
     
 def load_sample_dataset(sdh, dir_path=DEFAULT_DIR):
-
-    dfpos = read_pos_retailer(dir_path)
-    dffinn_sym = get_finnhub_symbol(exchange_code='T')
-
-    start_datetime = dfpos.index.get_level_values('datetime').min().strftime('%Y-%m-%d')
-    end_datetime = dfpos.index.get_level_values('datetime').max().strftime('%Y-%m-%d')
-    pos_ticker = dfpos.index.get_level_values('ticker').unique().to_list()
-
-
-    dfprices = pd.read_parquet(os.path.join(dir_path, 'aiq_pos_csmr_retailer/mkt.parquet'))
+    dfprices = pd.read_parquet(os.path.join(DEFAULT_DIR, 'aiq_pos_csmr_retailer_mkt.parquet'))
     dfprices = dfprices.reset_index()
     dfprices['ticker'] = dfprices['ticker'] + ' JP'
     dfprices = dfprices.set_index(['ticker', 'datetime'])
-
-
     universe = dfprices.index.get_level_values('ticker').unique().to_list()
+
+
+    dfpos = read_pos_retailer(dir_path)
+    start_datetime = dfpos.index.get_level_values('datetime').min().strftime('%Y-%m-%d')
+    end_datetime = dfpos.index.get_level_values('datetime').max().strftime('%Y-%m-%d')
+    pos_ticker = dfpos.index.get_level_values('ticker').unique().to_list()
 
     dfpos = dfpos[dfpos.index.get_level_values('ticker').isin(universe)]
     sdh.set_raw_data(dfraw=dfpos, data_source='aiq_pos_elec')
     sdh.set_raw_data(dfraw=dfprices, data_source='mkt')
 
+    dffinn_sym = get_finnhub_symbol(exchange_code='T')
     dffinn_sym = dffinn_sym.loc[dffinn_sym.ticker.isin(pos_ticker)]
-
-    # laod_finnhub_prices(sdh, dffinn_sym, start_datetime, end_datetime)
     load_finhub_funda(sdh, dffinn_sym, start_datetime, end_datetime, dir_path)
 
