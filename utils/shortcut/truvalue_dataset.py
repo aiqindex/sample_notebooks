@@ -6,13 +6,13 @@ from aiq_strategy_robot.data.data_accessor import DAL
 from aiq_strategy_robot.data.ALTERNATIVE import load_alternative_aiq_pos_csmr_goods_universe
 from aiq_strategy_robot.data.ALTERNATIVE import load_alternative_aiq_pos_csmr_goods_data
 from aiq_strategy_robot.data.FACTSET import load_factset_symbol_lookup
+from .path import DEFAULT_DIR
 
 sdh = DAL()
 sdh = load_alternative_aiq_pos_csmr_goods_universe(sdh)
 dfsyms = sdh.retrieve()
 dfsyms = dfsyms.rename({'TICKER': 'seccode'}, axis=1)
 
-DEFAULT_DIR = '/efs/share/factset/pattaya/sample/jupyter/'
 
 # Load Fundamental Data
 def register_fundamental_data(sdh, factset_symbols: pd.DataFrame=None, use_dump=True, data_dir=DEFAULT_DIR) -> int:

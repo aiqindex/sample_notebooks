@@ -1,8 +1,7 @@
 
 from .single_dataset import register_alt_data, register_market_data
+from .path import DEFAULT_DIR
 
-
-DEFAULT_DIR = '/efs/share/factset/pattaya/sample/jupyter/'
 
 
 def transform_mkt_vs_alt(sdh, data_id_mkt, data_id_alt):

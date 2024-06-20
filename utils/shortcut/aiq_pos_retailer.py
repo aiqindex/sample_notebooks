@@ -4,12 +4,10 @@ import pandas as pd
 
 from aiq_strategy_robot.data.data_accessor import DAL
 from aiq_strategy_robot.data.FINNHUB import load_finnhub_symbol_lookup, load_finnhub_equity_data, load_finnhub_fundamental
-
+from .path import DEFAULT_DIR
 
 
 sdh = DAL()
-
-DEFAULT_PATH= '/efs/share/factset/pattaya/sample/jupyter/'
 
 
 def filter_to_latest_releases(
@@ -24,7 +22,7 @@ def filter_to_latest_releases(
     return df
 
 
-def read_pos_retailer(dir_path=DEFAULT_PATH):
+def read_pos_retailer(dir_path=DEFAULT_DIR):
     # Reading from CSV file
     path_to_gen1_csv = os.path.join(dir_path, 'aiq_pos_csmr_retailer/20240312_pos_retailer_stack.csv')
     assert path_to_gen1_csv!='', 'Please provide the path to the CSV file'
@@ -85,7 +83,7 @@ def load_finhub_funda(sdh, dffinn_sym, start_datetime, end_datetime, dir_path):
 
 
     
-def load_sample_dataset(sdh, dir_path=DEFAULT_PATH):
+def load_sample_dataset(sdh, dir_path=DEFAULT_DIR):
 
     dfpos = read_pos_retailer(dir_path)
     dffinn_sym = get_finnhub_symbol(exchange_code='T')
