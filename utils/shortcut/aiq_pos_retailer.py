@@ -65,7 +65,7 @@ def laod_finnhub_prices(sdh, dffinn_sym, start_datetime, end_datetime):
 def load_finhub_funda(sdh, dffinn_sym, start_datetime, end_datetime, dir_path):
 
     if dir_path:
-        dffunda = pd.read_parquet(os.path.join(dir_path, 'aiq_pos_csmr_retailer_funda.parquet'))
+        dffunda = pd.read_parquet(os.path.join(dir_path, 'aiq_pos_retailer_funda.parquet'))
         sdh.set_raw_data(dfraw=dffunda, data_source='finnhub', source='fundamental')
         return dffunda
     else:
@@ -82,7 +82,7 @@ def load_finhub_funda(sdh, dffinn_sym, start_datetime, end_datetime, dir_path):
 
     
 def load_sample_dataset(sdh, dir_path=DEFAULT_DIR):
-    dfprices = pd.read_parquet(os.path.join(DEFAULT_DIR, 'aiq_pos_csmr_retailer_mkt.parquet'))
+    dfprices = pd.read_parquet(os.path.join(DEFAULT_DIR, 'aiq_pos_retailer_mkt.parquet'))
     dfprices = dfprices.reset_index()
     dfprices['ticker'] = dfprices['ticker'] + ' JP'
     dfprices = dfprices.set_index(['ticker', 'datetime'])
