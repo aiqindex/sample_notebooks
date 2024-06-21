@@ -95,7 +95,7 @@ def load_sample_dataset(sdh, dir_path=DEFAULT_DIR):
     pos_ticker = dfpos.index.get_level_values('ticker').unique().to_list()
 
     dfpos = dfpos[dfpos.index.get_level_values('ticker').isin(universe)]
-    sdh.set_raw_data(dfraw=dfpos, data_source='aiq_pos_elec')
+    sdh.set_raw_data(dfraw=dfpos, data_source='aiq_pos_retailer')
     sdh.set_raw_data(dfraw=dfprices, data_source='mkt')
 
     dffinn_sym = get_finnhub_symbol(exchange_code='T')
