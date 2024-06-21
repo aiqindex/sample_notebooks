@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Callable
 
 from aiq_strategy_robot.data.data_accessor import DAL
 from aiq_strategy_robot.data.ALTERNATIVE import load_alternative_aiq_pos_csmr_goods_universe
@@ -48,10 +48,19 @@ def get_factset_symbols(sdh, list_figis):
     return dfsyms2
 
 # Load Alternative Data
-def register_alt_data(sdh, data_dir=DEFAULT_DIR) -> int:
+def register_alt_data(
+        sdh,
+        data_dir=DEFAULT_DIR,
+        f_ticker_cvt: Optional[Callable[[str], str]] = None
+        ) -> int:
     # loading from csv to save time for this demo
     df_pos = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_sample_index.parquet'), engine='pyarrow')
-      
+
+    if f_ticker_cvt is not None:
+        df_pos.index = pd.MultiIndex.from_tuples(
+            [(f_ticker_cvt(i[0]), i[1]) for i in df_pos.index],
+            names=df_pos.index.names)
+
     return sdh.set_raw_data(
         data_source='external',
         dfraw=df_pos,
@@ -117,7 +126,7 @@ def load_finnhub_equity_data_fixed_ticker(
         ):
     if data_dir:
         df = pd.read_parquet(
-            Path(data_dir) / "finnhub_selected_ticker.parquet")
+            Path(data_dir) / "market_on_mongo.parquet")
         data_id = sdh.set_raw_data(df)
         return data_id
 
@@ -266,7 +275,15 @@ def load_acquirer_data(sdh, start_date, end_date, exchange_code='T', limit=10):
 
 
 
-def load_sample_dataset(sdh, *, exchange_code: str = 'T', limit: int = 20, start_date='2015-09-30', end_date='2024-06-01', data_dir: str =None):
+def load_sample_dataset(
+        sdh,
+        *,
+        exchange_code: str = 'T',
+        limit: int = 20,
+        start_date='2015-09-30',
+        end_date='2024-06-01',
+        data_dir: str =None,
+        ):
     """ サンプルデータのロード
 
     Parameters
