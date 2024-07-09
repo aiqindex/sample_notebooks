@@ -61,6 +61,7 @@ def register_alt_data(
             [(f_ticker_cvt(i[0]), i[1]) for i in df_pos.index],
             names=df_pos.index.names)
 
+    df_pos.index.names = ['TICKER', 'DATETIME']
     return sdh.set_raw_data(
         data_source='external',
         dfraw=df_pos,
@@ -70,6 +71,8 @@ def register_alt_data(
 # Load Fundamental Data
 def register_fundamental_data(sdh, data_dir=DEFAULT_DIR) -> int:
     df_fundamental = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_fundamental.parquet'), engine='pyarrow')
+
+    df_fundamental.index.names = ['TICKER', 'DATETIME']
     return sdh.set_raw_data(
         data_source='external',
         dfraw=df_fundamental,
@@ -79,6 +82,8 @@ def register_fundamental_data(sdh, data_dir=DEFAULT_DIR) -> int:
 # Load market data
 def register_market_data(sdh, data_dir=DEFAULT_DIR) -> int:
     dfmkt = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_mkt.parquet'), engine='pyarrow')
+
+    dfmkt.index.names = ['TICKER', 'DATETIME']
     return sdh.set_raw_data(
         data_source='external',
         dfraw=dfmkt,
