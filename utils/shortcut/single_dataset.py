@@ -103,9 +103,9 @@ def __filter_to_latest_releases(
 
 def register_elec_data(
         sdh,
-        data_dir: str
+        data_dir: str = DEFAULT_DIR
         ) -> int:
-    path_to_csv = Path(data_dir) / '20240312_pos_elec_goods_stack.csv'
+    path_to_csv = Path(data_dir) / 'pos_elec_goods_stack.csv'
     dfpos = pd.read_csv(
         path_to_csv, dtype={'ticker': str, 'SMOOTH': int},
         parse_dates=['datetime', 'release_timestamp'])

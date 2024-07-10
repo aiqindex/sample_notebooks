@@ -25,7 +25,7 @@ def filter_to_latest_releases(
 
 def read_pos_retailer(dir_path=DEFAULT_DIR):
     # Reading from CSV file
-    path_to_gen1_csv = os.path.join(dir_path, '20240312_pos_retailer_stack.csv')
+    path_to_gen1_csv = os.path.join(dir_path, 'pos_retailer_stack.csv')
     assert path_to_gen1_csv!='', 'Please provide the path to the CSV file'
     df_inc1 = pd.read_csv(path_to_gen1_csv, dtype={'ticker': str, 'SMOOTH': int}, parse_dates=['datetime', 'release_timestamp'])
     df_inc1 = df_inc1.drop('Unnamed: 0', axis=1)
