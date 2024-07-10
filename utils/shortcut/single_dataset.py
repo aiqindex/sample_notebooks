@@ -156,9 +156,11 @@ def load_finnhub_equity_data_fixed_ticker(
 
 
 def load_data_fiels(sdh, data_dir=DEFAULT_DIR):
+    def conv(t):
+        return t + '-JP'
 
     #  Load Alternative Data
-    data_id_alt = register_alt_data(sdh, data_dir=data_dir)
+    data_id_alt = register_alt_data(sdh, data_dir=data_dir, f_ticker_cvt=conv)
 
     #  Load Fundamental Data
     data_id_funda = register_fundamental_data(sdh, data_dir=data_dir)
