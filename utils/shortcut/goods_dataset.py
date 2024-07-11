@@ -1,8 +1,6 @@
 import os
-import numpy as np
 import pandas as pd
-from pathlib import Path
-from typing import List, Optional, Callable
+from typing import Optional, Callable
 
 from aiq_strategy_robot.data.data_accessor import DAL
 from aiq_strategy_robot.data.ALTERNATIVE import load_alternative_aiq_pos_csmr_goods_universe
@@ -14,14 +12,13 @@ from aiq_strategy_robot.data.ALTERNATIVE import load_alternative_aiq_pos_csmr_go
 from .path import DEFAULT_DIR
 
 
-
-
 #########################################################################
 # データファイルによるデータ取得 
 # markt        = factset
 # fundamental  = factset
 # alternative  = aiQ csmr Googds
 #########################################################################
+
 
 sdh = DAL()
 sdh = load_alternative_aiq_pos_csmr_goods_universe(sdh)
@@ -89,70 +86,6 @@ def register_market_data(sdh, data_dir=DEFAULT_DIR) -> int:
         dfraw=dfmkt,
         source='sample'
     )
-
-
-def __filter_to_latest_releases(
-    df: pd.DataFrame
-) -> pd.DataFrame:
-    df.set_index(
-        ['ticker', 'datetime', 'variable', 'SMOOTH', 'release_timestamp'],
-        inplace=True)
-    df = df.xs(0, level='SMOOTH').drop(['backfill'], axis=1)
-    df = df.sort_index()
-    df.reset_index('release_timestamp', drop=False, inplace=True)
-    df = df.loc[~df.index.duplicated(keep='last')]
-    df.drop(['release_timestamp'], axis=1, inplace=True)
-    df = df.unstack('variable')['values']
-    return df
-
-
-def register_elec_data(
-        sdh,
-        data_dir: str = DEFAULT_DIR
-        ) -> int:
-    path_to_csv = Path(data_dir) / 'pos_elec_goods_stack.csv'
-    dfpos = pd.read_csv(
-        path_to_csv, dtype={'ticker': str, 'SMOOTH': int},
-        parse_dates=['datetime', 'release_timestamp'])
-    dfpos = __filter_to_latest_releases(dfpos)
-    dfpos.index = pd.MultiIndex.from_tuples(
-        [(f"{t}-JP", dt) for t, dt in dfpos.index], names=dfpos.index.names)
-    data_id = sdh.set_raw_data(dfpos)
-    return data_id
-
-
-def load_finnhub_equity_data_fixed_ticker(
-            sdh,
-            target_stock_ticker: Optional[List[str]] = None,
-            freq: Optional[str] = None,
-            start_datetime: Optional[str] = None,
-            end_datetime: Optional[str] = None,
-            data_dir: Optional[str] = None,
-        ):
-    if data_dir:
-        df = pd.read_parquet(
-            Path(data_dir) / "market_on_mongo.parquet")
-        data_id = sdh.set_raw_data(df)
-        return data_id
-
-    df = load_finnhub_equity_data(
-        sdh,
-        symbols=target_stock_ticker,
-        freq=freq,
-        start_datetime=start_datetime,
-        end_datetime=end_datetime
-    ).retrieve()
-    data_id = int(
-        sdh.extract_definition.index.get_level_values("data_id")[-1])
-    df = sdh.get_raw_data(data_id)
-    df.index = pd.MultiIndex\
-        .from_tuples([
-            (t[0].replace(" ", "-"), t[1])for t in df.index],
-            names=["ticker", "datetime"])
-
-    data_id = sdh.set_raw_data(df)
-
-    return data_id
 
 
 def load_data_fields(sdh, data_dir=DEFAULT_DIR):
