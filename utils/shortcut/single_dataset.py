@@ -155,7 +155,7 @@ def load_finnhub_equity_data_fixed_ticker(
     return data_id
 
 
-def load_data_fiels(sdh, data_dir=DEFAULT_DIR):
+def load_data_fields(sdh, data_dir=DEFAULT_DIR):
     def conv(t):
         return t + '-JP'
 
@@ -310,6 +310,6 @@ def load_sample_dataset(
         データ終了日. data_dir=Noneの場合に有効, by default '2015-09-30'
     """
     if data_dir:
-        return load_data_fiels(sdh, data_dir=data_dir)
+        return load_data_fields(sdh, data_dir=data_dir)
     else:
         return load_acquirer_data(sdh, start_date, end_date, exchange_code, limit=limit)
