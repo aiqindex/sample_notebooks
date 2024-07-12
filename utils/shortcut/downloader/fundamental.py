@@ -32,8 +32,11 @@ def download_fundamental(
                 'seccode': 'ticker'},
             inplace=True)
         df['datetime'] = pd.to_datetime(df['datetime'], format='%Y%m%d')
-    r = df.set_index(['ticker', 'datetime'])
-    return r
+    df = df.set_index(['ticker', 'datetime'])
+    df.index = pd.MultiIndex.from_tuples(
+        [(i[0]+"-JP", i[1]) for i in df.index],
+        names=df.index.names)
+    return df
 
 
 if __name__ == "__main__":
