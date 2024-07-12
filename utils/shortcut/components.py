@@ -1,5 +1,5 @@
 
-from .single_dataset import register_alt_data, register_market_data
+from .goods_dataset import register_alt_data, register_market_data
 from .path import DEFAULT_DIR
 
 
