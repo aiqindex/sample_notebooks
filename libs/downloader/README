@@ -1,0 +1,39 @@
+# 価格データの更新
+価格データは influx DB　から取得します。
+
+
+## セットアップ
+取得するにあたり必要なセットアップを以下に記載します。
+
+### market_price_data_handlerのINSTALL
+inastallにあたり環境変数 `CI_JOB_TOKEN` の設定が必要です
+export CI_JOB_TOKEN=XXXXXXXXXXXXXXXXXXXXXX
+＊値については有識者に確認すること
+
+```
+pip install git+https://git.ai-knows.com/ai-knows/market_price_data_handler
+```
+
+#### df_config.ymlの設定
+DB接続情報をこちらに記載すること
+以下参考：
+https://git.ai-knows.com/ai-knows/market_price_data_handler/-/tree/master/
+http://localhost:19998/lab/workspaces/auto-K/tree/Workspace/DEco/tool/data_loader/db_config.yml
+
+### aiq_password_handlerのINSTALL
+```
+pip install git+https://git.ai-knows.com/ai-knows/aiq_password_handler
+```
+
+### aiqbのclone
+market_price_data_handlerの実行にaiqbが必要ですが、pip installができないため、
+cloneしてパスを通します。
+
+
+## 実行
+market.pyファイルの `download_market_from_influx`を実行
+＊当該ファイルはdataset/common.pyで参照されているので実際の実行はそこを見ること
+
+
+
+

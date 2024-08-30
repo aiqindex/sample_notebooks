@@ -12,6 +12,8 @@ from ..path import DEFAULT_DIR
 
 
 FILE_NAME = 'pos_elec_goods_stack.parquet'
+ENV_DATABSE = 'TRIAL_SNOWFLAKE_DATABASE_AIQ_POS_ELEC_GOODS'
+
 
 def register_elec_goods_data(
         sdh,
@@ -57,6 +59,10 @@ def read_by_file(data_dir: str = DEFAULT_DIR) -> pd.DataFrame:
 
 
 def read_by_laoder(end_date=None, db_name=None, schema_name=None) -> pd.DataFrame:
+
+    if not db_name:
+        db_name = os.environ.get(ENV_DATABSE)
+
     temp_sdh = DAL()
     dfpos = format_pos(
         load_alternative_aiq_pos_elec_goods_data(

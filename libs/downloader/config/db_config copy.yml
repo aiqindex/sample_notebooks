@@ -1,0 +1,30 @@
+price_server:
+  hostname: deco-influx.ai-knows.com
+  port: 8086
+log: '~/Workspace/influx_logs'
+databases:
+  tick: tick_tr
+  daily: daily_tr
+measurements:
+  tick: tick
+  daily: daily
+  shares: shares
+  cap: cap
+  limits: dailyadj
+  fx: fx
+shares_type:
+  type: ISS
+symbol_lookup_table:
+  lookup_db_name: indexCatalog
+  lookup_col_name: TSE
+split_server:
+  host: 'prod1-modelstore-ndeco.aiq-index.com'
+  port: 27017
+  stock_split_dbname: 'stock_split_series'
+  timezone: 'Japan'
+holiday_server:
+  host: 'prod1-modelstore-ndeco.aiq-index.com'
+  port: 27017
+  holiday_dbname: 'product_calendar'
+  holiday_collection: 'TSE'
+  holiday_timezone: 'Japan'
