@@ -20,7 +20,7 @@ def download_goods(skip: bool = False) -> Set[str]:
         default_path = Path(DEFAULT_DIR)\
             / "aiq_pos_csmr_goods_sample_index.parquet"
         df = pd.read_parquet(default_path)
-        return set(df.index.get_level_values("ticker").map(str))
+        return set(df.index.get_level_values("TICKER").map(str))
 
     return set()
 

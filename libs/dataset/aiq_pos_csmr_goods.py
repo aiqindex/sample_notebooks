@@ -9,6 +9,7 @@ from ..path import DEFAULT_DIR
 from .utils import format_pos
 
 FILE_NAME = 'pos_csmr_goods_stack.parquet'
+ENV_DATABSE = 'TRIAL_SNOWFLAKE_DATABASE_AIQ_POS_CSMR_GOODS'
 
 # Load Alternative Data
 def register_csmr_goods_data(
@@ -52,6 +53,10 @@ def register_csmr_goods_data(
 
 
 def read_by_laoder(end_date=None, db_name=None, schema_v1_name=None, schema_v2_name=None) -> pd.DataFrame:
+
+    if not db_name:
+        db_name = os.environ.get(ENV_DATABSE)
+
     temp_sdh = DAL()
     df_inc1 = format_pos(
         load_alternative_aiq_pos_csmr_goods_data(
