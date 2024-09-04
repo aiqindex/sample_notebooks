@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import List
-from pymongo import MongoClient
+
 from asr_protected.utils.myfunctools import compose
 
 from .utils import download_alt
@@ -11,6 +11,8 @@ def download_fundamental(
         from_year: int = 2008,
         fields: List[str] = ['sales'],
 ) -> pd.DataFrame:
+    from pymongo import MongoClient
+    
     conn = MongoClient(mongo_conn_str)
     col = conn['TRDB']['QUARTERLY_FIN_STMT']
 

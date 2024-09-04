@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 from typing import List
-from pymongo import MongoClient
+
 
 current_file_path = os.path.abspath(__file__)
 current_dir, filename = os.path.split(current_file_path)
@@ -11,6 +11,8 @@ current_dir, filename = os.path.split(current_file_path)
 def download_market_from_mongo(
         mongo_conn_str: str,    # e.g. xxxxx.com:1234,
         tickers: List[str]) -> pd.DataFrame:
+
+    from pymongo import MongoClient
     conn = MongoClient(mongo_conn_str)
     col = conn['plugatrade']['market_data']
     df = pd.DataFrame(col.find(

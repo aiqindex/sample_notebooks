@@ -21,24 +21,16 @@ def register_retailer_data(
         f_ticker_cvt: Optional[Callable[[str], str]] = None,
         db_name: str = None,
         schema_name: str = None,
-        reload=False,
         end_date=None,
 ) -> int:
 
-    if reload:
+    try:
+        # loading from csv to save time for this demo
+        df_pos = read_by_file(data_dir)
+    except:
+        # ファイルが存在しない場合はloaderから取得
         print('extract pos_retailer by loader..')
-        df_pos = read_by_laoder(
-            end_date=end_date, 
-            db_name=db_name, schema_name=schema_name)
-        df_pos.to_parquet(os.path.join(data_dir, FILE_NAME))
-    else:
-        try:
-            # loading from csv to save time for this demo
-            df_pos = read_by_file(data_dir)
-        except:
-            # ファイルが存在しない場合はloaderから取得
-            print('extract pos_retailer by loader..')
-            df_pos = read_by_laoder(end_date=end_date, db_name=db_name, schema_name=schema_name)
+        df_pos = read_by_laoder(end_date=end_date, db_name=db_name, schema_name=schema_name)
 
     if f_ticker_cvt is not None:
         df_pos.index = pd.MultiIndex.from_tuples([(f_ticker_cvt(i[0]), i[1]) for i in df_pos.index], names=df_pos.index.names)
@@ -75,3 +67,12 @@ def read_by_laoder(end_date=None, db_name=None, schema_name=None):
     dfpos.sort_index(inplace=True)
     return dfpos
 
+
+
+def reload(data_dir, end_date=None, db_name=None, schema_name=None):
+    df_pos = read_by_laoder(
+        end_date=end_date, 
+        db_name=db_name, schema_name=schema_name
+    )
+    df_pos.to_parquet(os.path.join(data_dir, FILE_NAME))
+    return df_pos
