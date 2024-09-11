@@ -5,20 +5,17 @@
 ## セットアップ
 取得するにあたり必要なセットアップを以下に記載します。
 
-### market_price_data_handlerのINSTALL
-inastallにあたり環境変数 `CI_JOB_TOKEN` の設定が必要です
-export CI_JOB_TOKEN=XXXXXXXXXXXXXXXXXXXXXX
-＊値については有識者に確認すること
+### load_data_from_influxdb のINSTALL
 
 ```
-pip install git+https://git.ai-knows.com/ai-knows/market_price_data_handler
+pip install load_data_from_influxdb
 ```
 
-#### df_config.ymlの設定
-DB接続情報をこちらに記載すること
+#### DB接続情報 の設定
+load_data_from_influxdbのconfig_templateをcopyして、任意に編集
+
 以下参考：
-https://git.ai-knows.com/ai-knows/market_price_data_handler/-/tree/master/
-http://localhost:19998/lab/workspaces/auto-K/tree/Workspace/DEco/tool/data_loader/db_config.yml
+https://git.ai-knows.com/ai-knows/load_data_from_influxdb
 
 ### aiq_password_handlerのINSTALL
 ```

@@ -9,7 +9,7 @@ from aiq_strategy_robot.data.data_accessor import DAL
 from aiq_strategy_robot.data.data_accessor import StdDataHandler
 from asr_protected.data_transformer.variable_libs import log_diff
 
-from ..downloader.fundamental import download_fundamental_all
+from ..downloader.fundamental import download_fundamental
 from ..downloader.market import download_market_from_influx
 from ..utils import index_to_upper
 from ..path import DEFAULT_DIR
@@ -30,9 +30,9 @@ def extract_tickers(sdh, data_ids):
     return list(set(tickers))
 
 def register_market(
-    filename: str = "common/market_on_mongo.parquet",
+    sdh: StdDataHandler,
+    filename: str = "common/market_return.parquet",
     yf_switch: str = False,
-    sdh: StdDataHandler = None,
     base_data_id: Optional[Union[int, list]] = None,
     start_date: str = '2007-01-04'
 ) -> int:
@@ -41,12 +41,12 @@ def register_market(
 
     Parameters
     ----------
-    filename : str, optional
-        S3 upload file name, by default "common/market_on_mongo.parquet".
-    yf_switch : bool, optional
-        Whether to retrieve data using the yfinance API, by default False.
     sdh : StdDataHandler
         Data handler for managing the dataset.
+    filename : str, optional
+        S3 upload file name, by default "common/market_return.parquet".
+    yf_switch : bool, optional
+        Whether to retrieve data using the yfinance API, by default False.
     base_data_id : Optional[Union[int, list]], optional
         Data ID(s) for the universe when yf_switch is True, by default None.
     start_date : str, optional
@@ -134,13 +134,15 @@ def register_fundamental(
 # ************************** reload ************************
 
 def reload_market_to_s3(
+    conf_path: str,
     tickers: List[str],
     start_date: str = '2007-01-04',
     end_date: str = '2024-07-11',
-    filename: str = "common/market_on_mongo.parquet"
+    s3filename: str = "common/market_return.parquet",
+    efsfilename: str = None
 ):
     print('extract mkt data from database..')
-    df_mkt_raw = download_market_from_influx(tickers, start_date, end_date)
+    df_mkt_raw = download_market_from_influx(conf_path, tickers, start_date, end_date)
 
     # transformation to returns
     tmpsdh = DAL()
@@ -155,16 +157,41 @@ def reload_market_to_s3(
     return_on = tmpsdh.transform.spread(x1field='log_open', x2field='log_close_prev', name='returns_on').variable_ids[0] # open(t2) - close(t1) 
 
     df_mkt = tmpsdh.get_variables([returns, returns_oo, returns_id, return_on])
-    to_s3(df_mkt, DEFAULT_BUCKET, filename)
+    to_s3(df_mkt, DEFAULT_BUCKET, s3filename)
+
+    if efsfilename:
+        df_mkt_raw.to_parquet(efsfilename)
 
 
 def reload_fundamental_to_s3(
-    mongo_conn_str, 
+    tickers: list,
+    mongo_conn_str,
+    from_year: int = 2008,
+    fields: List[str] = ['sales'],
     filename="common/fundamental_yoy_on_mongo.parquet"
 ):
     print('extract fundamental from monogo db..')
-    dfsales = download_fundamental_all(mongo_conn_str)
+    download_fundamental(
+            mongo_conn_str, tickers, from_year, fields
+        )
+
     # conv yoy
     dfsales = log_diff(dfsales, periods=4)
     dfsales.columns = [c + '_yoy' for c in dfsales.columns]
     to_s3(dfsales, DEFAULT_BUCKET, filename)
+
+
+
+"""
+#### Reload the data in this way. ##########
+
+from libs.dataset.reload import get_alt_tickers
+from libs.dataset.common import reload_market_to_s3, download_fundamental
+
+# Pass to `aiqb`
+sys.path.append('../../../modules')
+
+tickers = get_alt_tickers()
+reload_market_to_s3(tickers)
+reload_fundamental_to_s3(tickers, 'ssss-sss-ss.sss-index.com:11111')
+"""

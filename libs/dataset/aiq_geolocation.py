@@ -12,6 +12,8 @@ from ..s3 import read_s3, to_s3, DEFAULT_BUCKET
 
 
 GEO_FILE_NAME = 'pos_geolocation.parquet'
+ENV_DATABSE = 'TRIAL_SNOWFLAKE_DATABASE_AIQ_GEOLOCATION'
+
 FUNDA_FILE_NAME = 'dfsales_transportation.parquet'
 
 
@@ -48,6 +50,10 @@ def read_geo_by_laoder(
     db_name=None, 
     schema_name=None
 ) -> pd.DataFrame:
+    
+    if not db_name:
+        db_name = os.environ.get(ENV_DATABSE)
+
     dfdata = load_alternative_aiq_geolocation_data(
         DAL(), ticker=tickers, start_datetime=start_date, end_datetime=end_date,
         db_name=db_name, schema_name=schema_name).retrieve()
@@ -68,7 +74,6 @@ def reload_geolocation(
     )
     dfdata.to_parquet(os.path.join(data_dir, GEO_FILE_NAME))
     return dfdata
-
 
 
 def read_fundamental(sec_list):
