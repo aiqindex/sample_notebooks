@@ -13,6 +13,7 @@ def format_pos(df):
     df.drop(['RELEASE_TIMESTAMP'], axis=1, inplace=True)
     return df.unstack('VARIABLE')['VALUE']
 
+
 def filter_to_latest_releases(
     df: pd.DataFrame
 ) -> pd.DataFrame:

@@ -1,9 +1,7 @@
 import pandas as pd
 from typing import List
-from pymongo import MongoClient
-from asr_protected.utils.myfunctools import compose
 
-from .utils import download_alt
+from asr_protected.utils.myfunctools import compose
 
 def download_fundamental(
         mongo_conn_str: str,    # e.g. xxxxx.com:1234
@@ -11,6 +9,8 @@ def download_fundamental(
         from_year: int = 2008,
         fields: List[str] = ['sales'],
 ) -> pd.DataFrame:
+    from pymongo import MongoClient
+    
     conn = MongoClient(mongo_conn_str)
     col = conn['TRDB']['QUARTERLY_FIN_STMT']
 
@@ -37,22 +37,3 @@ def download_fundamental(
         df['datetime'] = pd.to_datetime(df['datetime'], format='%Y%m%d')
     df = df.set_index(['ticker', 'datetime'])
     return df
-
-
-
-
-def download_fundamental_all(
-    mongo_conn_str: str,    # e.g. xxxxx.com:1234
-    from_year: int = 2008,
-    fields: List[str] = ['sales'],
-):
-    tickers = download_alt()
-    return download_fundamental(
-        mongo_conn_str, tickers, from_year, fields
-    )
-
-
-
-if __name__ == "__main__":
-    r = download_fundamental(['8035', '9983'], 2022, ['sales'])
-    print(r)
