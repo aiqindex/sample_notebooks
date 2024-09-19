@@ -153,8 +153,8 @@ def reload_market_to_s3(
 
     returns = tmpsdh.transform.log_diff(1, data_id=tmp_data_id, fields='close', names='returns').variable_ids[0]  # close(t2) - close(t1) 
     returns_oo = tmpsdh.transform.log_diff(1, data_id=tmp_data_id, fields='open', names='returns_oo').variable_ids[0] # open(t2) - open(t1) 
-    returns_id = tmpsdh.transform.spread(x1field='log_close', x2field='log_open', name='returns_id').variable_ids[0] # close(t1) - open(t1) 
-    return_on = tmpsdh.transform.spread(x1field='log_open', x2field='log_close_prev', name='returns_on').variable_ids[0] # open(t2) - close(t1) 
+    returns_id = tmpsdh.transform.sub(x1field='log_close', x2field='log_open', name='returns_id').variable_ids[0] # close(t1) - open(t1) 
+    return_on = tmpsdh.transform.sub(x1field='log_open', x2field='log_close_prev', name='returns_on').variable_ids[0] # open(t2) - close(t1) 
 
     df_mkt = tmpsdh.get_variables([returns, returns_oo, returns_id, return_on])
     to_s3(df_mkt, DEFAULT_BUCKET, s3filename)
