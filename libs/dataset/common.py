@@ -133,6 +133,15 @@ def register_fundamental(
 
 # ************************** reload ************************
 
+import glob
+import os
+
+def get_matching_files(directory, pattern):
+    # パターンに基づいて条件に一致するファイルを取得
+    search_pattern = os.path.join(directory, pattern)
+    matching_files = glob.glob(search_pattern)
+    return matching_files
+
 def reload_market_to_s3(
     conf_path: str,
     tickers: List[str],
@@ -141,8 +150,21 @@ def reload_market_to_s3(
     s3filename: str = "common/market_return.parquet",
     efsfilename: str = None
 ):
-    print('extract mkt data from database..')
-    df_mkt_raw = download_market_from_influx(conf_path, tickers, start_date, end_date)
+    # print('extract mkt data from database..')
+    # df_mkt_raw = download_market_from_influx(conf_path, tickers, start_date, end_date)
+    datas = []
+    for data_path in get_matching_files('/efs/share/data/extract/', '20240927_extract_*_*.parquet'):
+        datas.append(pd.read_parquet(data_path))
+    df_mkt_raw = pd.concat(datas)
+    df_mkt_raw.to_parquet()
+
+    df_mkt_raw['TICKER'] = df_mkt_raw.Ticker.str.split(' ').str[0]
+    df_mkt_raw['DATETIME'] = pd.to_datetime(df_mkt_raw.DATE)
+    df_mkt_raw = df_mkt_raw.set_index(['TICKER', 'DATETIME']).rename(columns={
+        'Open Price': 'open', 'High Price': 'high', 
+        'Low Price': 'low', 'Close Price': 'close', 
+        'VWAP Price': 'vwap', 'Volume': 'volume'}
+    )[['open', 'high', 'low', 'close', 'vwap', 'volume', 'Turnover', 'Market Cap']]
 
     # transformation to returns
     tmpsdh = DAL()
