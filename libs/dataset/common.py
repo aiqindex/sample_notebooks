@@ -31,10 +31,7 @@ def extract_tickers(sdh, data_ids):
 
 def register_market(
     sdh: StdDataHandler,
-    filename: str = "common/market_return.parquet",
-    yf_switch: str = False,
-    base_data_id: Optional[Union[int, list]] = None,
-    start_date: str = '2007-01-04'
+    filename: str = "common/market_return.parquet"
 ) -> int:
     """
     Register market data into the handler.
@@ -45,8 +42,6 @@ def register_market(
         Data handler for managing the dataset.
     filename : str, optional
         S3 upload file name, by default "common/market_return.parquet".
-    yf_switch : bool, optional
-        Whether to retrieve data using the yfinance API, by default False.
     base_data_id : Optional[Union[int, list]], optional
         Data ID(s) for the universe when yf_switch is True, by default None.
     start_date : str, optional
@@ -60,17 +55,9 @@ def register_market(
         The data ID registered in the handler.
     """
 
-    if not yf_switch:
-        alias = 'market_returns'
-        # print('extract mkt data from s3..')
-        df_mkt = read_s3(DEFAULT_BUCKET, filename)        
-    else:
-        alias = 'market'
-        assert base_data_id, "If `yf_switch`=True, specify the data_id that will be the universe."
-        base_data_id = base_data_id if isinstance(base_data_id, list) else [base_data_id]
-        tickers = extract_tickers(sdh, base_data_id)
-        print('extract mkt data from yfinance..')
-        df_mkt = read_market_data_from_yfinance(tickers, start_date)
+    alias = 'market_returns'
+    # print('extract mkt data from s3..')
+    df_mkt = read_s3(DEFAULT_BUCKET, filename)
 
     df_mkt = index_to_upper(df_mkt)
     data_id = sdh.set_raw_data(df_mkt)
@@ -133,6 +120,15 @@ def register_fundamental(
 
 # ************************** reload ************************
 
+import glob
+import os
+
+def get_matching_files(directory, pattern):
+    # パターンに基づいて条件に一致するファイルを取得
+    search_pattern = os.path.join(directory, pattern)
+    matching_files = glob.glob(search_pattern)
+    return matching_files
+
 def reload_market_to_s3(
     conf_path: str,
     tickers: List[str],
@@ -141,8 +137,21 @@ def reload_market_to_s3(
     s3filename: str = "common/market_return.parquet",
     efsfilename: str = None
 ):
-    print('extract mkt data from database..')
-    df_mkt_raw = download_market_from_influx(conf_path, tickers, start_date, end_date)
+    # print('extract mkt data from database..')
+    # df_mkt_raw = download_market_from_influx(conf_path, tickers, start_date, end_date)
+    datas = []
+    for data_path in get_matching_files('/efs/share/data/extract/', '20240927_extract_*_*.parquet'):
+        datas.append(pd.read_parquet(data_path))
+    df_mkt_raw = pd.concat(datas)
+    df_mkt_raw.to_parquet()
+
+    df_mkt_raw['TICKER'] = df_mkt_raw.Ticker.str.split(' ').str[0]
+    df_mkt_raw['DATETIME'] = pd.to_datetime(df_mkt_raw.DATE)
+    df_mkt_raw = df_mkt_raw.set_index(['TICKER', 'DATETIME']).rename(columns={
+        'Open Price': 'open', 'High Price': 'high', 
+        'Low Price': 'low', 'Close Price': 'close', 
+        'VWAP Price': 'vwap', 'Volume': 'volume'}
+    )[['open', 'high', 'low', 'close', 'vwap', 'volume', 'Turnover', 'Market Cap']]
 
     # transformation to returns
     tmpsdh = DAL()
@@ -153,8 +162,8 @@ def reload_market_to_s3(
 
     returns = tmpsdh.transform.log_diff(1, data_id=tmp_data_id, fields='close', names='returns').variable_ids[0]  # close(t2) - close(t1) 
     returns_oo = tmpsdh.transform.log_diff(1, data_id=tmp_data_id, fields='open', names='returns_oo').variable_ids[0] # open(t2) - open(t1) 
-    returns_id = tmpsdh.transform.spread(x1field='log_close', x2field='log_open', name='returns_id').variable_ids[0] # close(t1) - open(t1) 
-    return_on = tmpsdh.transform.spread(x1field='log_open', x2field='log_close_prev', name='returns_on').variable_ids[0] # open(t2) - close(t1) 
+    returns_id = tmpsdh.transform.sub(x1field='log_close', x2field='log_open', name='returns_id').variable_ids[0] # close(t1) - open(t1) 
+    return_on = tmpsdh.transform.sub(x1field='log_open', x2field='log_close_prev', name='returns_on').variable_ids[0] # open(t2) - close(t1) 
 
     df_mkt = tmpsdh.get_variables([returns, returns_oo, returns_id, return_on])
     to_s3(df_mkt, DEFAULT_BUCKET, s3filename)

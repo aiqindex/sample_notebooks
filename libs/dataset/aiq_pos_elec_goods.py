@@ -32,6 +32,8 @@ def register_elec_goods_data(
         print('extract pos_elec_goods by loader..')
         df_pos = read_by_laoder(start_date=start_date, end_date=end_date, db_name=db_name, schema_name=schema_name)
 
+    df_pos = format_pos(df_pos)
+
     if f_ticker_cvt is not None:
         df_pos.index = pd.MultiIndex.from_tuples([(f_ticker_cvt(i[0]), i[1]) for i in df_pos.index], names=df_pos.index.names)
 
@@ -51,12 +53,11 @@ def read_by_laoder(start_date=None, end_date=None, db_name=None, schema_name=Non
         db_name = os.environ.get(ENV_DATABSE)
 
     temp_sdh = DAL()
-    dfpos = format_pos(
-        load_alternative_aiq_pos_elec_goods_data(
+    dfpos = load_alternative_aiq_pos_elec_goods_data(
             temp_sdh, load_all_tickers=True, 
+            load_only_latest=False,
             start_datetime=start_date, end_datetime=end_date, 
             db_name=db_name, schema_name=schema_name).retrieve()
-    )
     dfpos.sort_index(inplace=True)
     return dfpos
 

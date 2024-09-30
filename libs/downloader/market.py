@@ -45,7 +45,7 @@ def download_market_from_influx(
             'market_hour_definition': os.path.join(conf_path, 'market_hours.yml')
         })
 
-    sample_instance.run(list_tickers, ['open', 'close'])
+    sample_instance.run(list_tickers, ['open', 'high', 'low', 'close', 'volume'], switch_split=True)
     retval = sample_instance.retrieve('all', start_date, end_date, 'raw')
 
     list_outputs = []

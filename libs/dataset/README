@@ -1,9 +1,9 @@
 # 価格データの更新
-価格データは influx DB　から取得します。
+価格データは `influx DB` から取得します。
 
 
 ## セットアップ
-取得するにあたり必要なセットアップを以下に記載します。
+必要なセットアップを以下に記載します。
 
 ### load_data_from_influxdb のINSTALL
 
@@ -23,12 +23,12 @@ pip install git+https://git.ai-knows.com/ai-knows/aiq_password_handler
 ```
 
 ### aiqbのclone
-market_price_data_handlerの実行にaiqbが必要ですが、pip installができないため、
+market_price_data_handlerの実行に `aiqb` が必要ですが、pip installができないため、
 cloneしてパスを通します。
 
 
 ## 実行
-market.pyファイルの `download_market_from_influx`を実行
+common.pyファイルの `reload_market_to_s3`を実行
 ＊当該ファイルはdataset/common.pyで参照されているので実際の実行はそこを見ること
 
 
