@@ -31,10 +31,7 @@ def extract_tickers(sdh, data_ids):
 
 def register_market(
     sdh: StdDataHandler,
-    filename: str = "common/market_return.parquet",
-    yf_switch: str = False,
-    base_data_id: Optional[Union[int, list]] = None,
-    start_date: str = '2007-01-04'
+    filename: str = "common/market_return.parquet"
 ) -> int:
     """
     Register market data into the handler.
@@ -45,8 +42,6 @@ def register_market(
         Data handler for managing the dataset.
     filename : str, optional
         S3 upload file name, by default "common/market_return.parquet".
-    yf_switch : bool, optional
-        Whether to retrieve data using the yfinance API, by default False.
     base_data_id : Optional[Union[int, list]], optional
         Data ID(s) for the universe when yf_switch is True, by default None.
     start_date : str, optional
@@ -60,17 +55,9 @@ def register_market(
         The data ID registered in the handler.
     """
 
-    if not yf_switch:
-        alias = 'market_returns'
-        # print('extract mkt data from s3..')
-        df_mkt = read_s3(DEFAULT_BUCKET, filename)        
-    else:
-        alias = 'market'
-        assert base_data_id, "If `yf_switch`=True, specify the data_id that will be the universe."
-        base_data_id = base_data_id if isinstance(base_data_id, list) else [base_data_id]
-        tickers = extract_tickers(sdh, base_data_id)
-        print('extract mkt data from yfinance..')
-        df_mkt = read_market_data_from_yfinance(tickers, start_date)
+    alias = 'market_returns'
+    # print('extract mkt data from s3..')
+    df_mkt = read_s3(DEFAULT_BUCKET, filename)
 
     df_mkt = index_to_upper(df_mkt)
     data_id = sdh.set_raw_data(df_mkt)
