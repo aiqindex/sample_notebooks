@@ -31,7 +31,8 @@ def extract_tickers(sdh, data_ids):
 
 def register_market(
     sdh: StdDataHandler,
-    filename: str = "common/market_return.parquet"
+    filename: str = "common/market_return.parquet",
+    filt_data_id: int = None
 ) -> int:
     """
     Register market data into the handler.
@@ -60,6 +61,13 @@ def register_market(
     df_mkt = read_s3(DEFAULT_BUCKET, filename)
 
     df_mkt = index_to_upper(df_mkt)
+
+    if filt_data_id:
+        dftgt = sdh.get_raw_data(filt_data_id)
+        tgt = dftgt.index.get_level_values('TICKER').unique()
+        df_mkt = df_mkt[df_mkt.index.get_level_values('TICKER').isin(tgt)]
+        alias = f'{alias}_{filt_data_id}'
+
     data_id = sdh.set_raw_data(df_mkt)
         
     sdh.set_alias({data_id: alias})
