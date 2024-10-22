@@ -123,53 +123,82 @@ def register_fundamental(
 import glob
 import os
 
+import pandas as pd
+from os import listdir
+from os.path import isfile, join
+
 def get_matching_files(directory, pattern):
     # パターンに基づいて条件に一致するファイルを取得
     search_pattern = os.path.join(directory, pattern)
     matching_files = glob.glob(search_pattern)
     return matching_files
 
-def reload_market_to_s3(
-    conf_path: str,
-    tickers: List[str],
-    start_date: str = '2007-01-04',
-    end_date: str = '2024-07-11',
-    s3filename: str = "common/market_return.parquet",
-    efsfilename: str = None
-):
-    # print('extract mkt data from database..')
-    # df_mkt_raw = download_market_from_influx(conf_path, tickers, start_date, end_date)
-    datas = []
-    for data_path in get_matching_files('/efs/share/data/extract/', '20240927_extract_*_*.parquet'):
-        datas.append(pd.read_parquet(data_path))
-    df_mkt_raw = pd.concat(datas)
-    df_mkt_raw.to_parquet()
 
-    df_mkt_raw['TICKER'] = df_mkt_raw.Ticker.str.split(' ').str[0]
-    df_mkt_raw['DATETIME'] = pd.to_datetime(df_mkt_raw.DATE)
-    df_mkt_raw = df_mkt_raw.set_index(['TICKER', 'DATETIME']).rename(columns={
-        'Open Price': 'open', 'High Price': 'high', 
-        'Low Price': 'low', 'Close Price': 'close', 
-        'VWAP Price': 'vwap', 'Volume': 'volume'}
-    )[['open', 'high', 'low', 'close', 'vwap', 'volume', 'Turnover', 'Market Cap']]
+def get_adj_close(
+    dfinput: pd.DataFrame,
+    list_tickers: list
+) -> pd.DataFrame:
+    dfclose = dfinput[['Ticker', 'DATE', 'Close Price', 'Split Factor', 'Div Factor']].copy()
+    dfclose = dfclose.rename(columns={
+        'Ticker': 'ticker',
+        'DATE': 'datetime',
+        'Close Price': 'close',
+        'Split Factor': 'split_ratio',
+        'Div Factor': 'div_ratio'
+    })
+    dfclose['ticker'] = dfclose['ticker'].apply(lambda x: x[:4])
+    dfclose = dfclose.loc[dfclose['ticker'].isin(list_tickers)]
+    dfclose = dfclose.set_index(['ticker', 'datetime'])
+    dfclose['adj_close'] = dfclose['close'] * dfclose['split_ratio'] * dfclose['div_ratio']
+    return dfclose[['adj_close', 'close']]
+
+
+def reload_market_to_s3(
+    tickers: List[str],
+    s3filename: str = "common/market_return.parquet",
+):
+
+    extract_dir = '/efs/share/data/extract/'
+    list_extracts = [join(extract_dir, f) for f in listdir(extract_dir) if isfile(join(extract_dir, f))]
+    list_extracts.sort()
+    list_extracts
+
+    # files with market data are only required.
+    list_data_extracts = [x for x in list_extracts if '_cae_' not in x]
+
+    # # we need only after 2019 for SCI+
+    # list_data_sci = [x for x in list_data_extracts if target_file_str in x]
+    # list_data_sci
+
+    list_data = []
+    for fl in list_extracts:
+        dftmp = pd.read_parquet(fl, engine='pyarrow')
+        list_data.append(dftmp)
+    dfdata = pd.concat(list_data, axis=0, sort=False)
+    dfdata.head() 
+
+    df_mkt_raw = get_adj_close(dfdata, tickers)
+    df_mkt_raw.index.names = ['TICKER', 'DATETIME']
+    df_mkt_raw = df_mkt_raw.loc[~df_mkt_raw.index.duplicated()]
 
     # transformation to returns
     tmpsdh = DAL()
     tmp_data_id = tmpsdh.set_raw_data(df_mkt_raw)
 
-    logs = tmpsdh.transform.log(data_id=tmp_data_id, fields=['close', 'open'], names=['log_close', 'log_open']).variable_ids
-    logs_prev = tmpsdh.transform.shift(1, fields=['log_close', 'log_open'], names=['log_close_prev', 'log_open_prev']).variable_ids
+    # logs = tmpsdh.transform.log(data_id=tmp_data_id, fields=['close', 'open'], names=['log_close', 'log_open']).variable_ids
+    # logs_prev = tmpsdh.transform.shift(1, fields=['log_close', 'log_open'], names=['log_close_prev', 'log_open_prev']).variable_ids
 
-    returns = tmpsdh.transform.log_diff(1, data_id=tmp_data_id, fields='close', names='returns').variable_ids[0]  # close(t2) - close(t1) 
-    returns_oo = tmpsdh.transform.log_diff(1, data_id=tmp_data_id, fields='open', names='returns_oo').variable_ids[0] # open(t2) - open(t1) 
-    returns_id = tmpsdh.transform.sub(x1field='log_close', x2field='log_open', name='returns_id').variable_ids[0] # close(t1) - open(t1) 
-    return_on = tmpsdh.transform.sub(x1field='log_open', x2field='log_close_prev', name='returns_on').variable_ids[0] # open(t2) - close(t1) 
+    returns = tmpsdh.transform.log_diff(1, data_id=tmp_data_id, fields='adj_close', names='returns').variable_ids[0]  # close(t2) - close(t1) 
+    # returns_oo = tmpsdh.transform.log_diff(1, data_id=tmp_data_id, fields='open', names='returns_oo').variable_ids[0] # open(t2) - open(t1) 
+    # returns_id = tmpsdh.transform.sub(x1field='log_close', x2field='log_open', name='returns_id').variable_ids[0] # close(t1) - open(t1) 
+    # return_on = tmpsdh.transform.sub(x1field='log_open', x2field='log_close_prev', name='returns_on').variable_ids[0] # open(t2) - close(t1) 
 
-    df_mkt = tmpsdh.get_variables([returns, returns_oo, returns_id, return_on])
+    # df_mkt = tmpsdh.get_variables([returns, returns_oo, returns_id, return_on])
+    df_mkt = tmpsdh.get_variables([returns])
     to_s3(df_mkt, DEFAULT_BUCKET, s3filename)
 
-    if efsfilename:
-        df_mkt_raw.to_parquet(efsfilename)
+    # if efsfilename:
+    #     df_mkt_raw.to_parquet(efsfilename)
 
 
 def reload_fundamental_to_s3(
