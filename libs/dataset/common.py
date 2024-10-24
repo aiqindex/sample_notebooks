@@ -202,16 +202,22 @@ def reload_market_to_s3(
 
 
 def reload_fundamental_to_s3(
-    tickers: list,
     mongo_conn_str,
+    tickers: list,
     from_year: int = 2008,
+    end_date: str = None,
     fields: List[str] = ['sales'],
     filename="common/fundamental_yoy_on_mongo.parquet"
 ):
     print('extract fundamental from monogo db..')
-    download_fundamental(
-            mongo_conn_str, tickers, from_year, fields
-        )
+    dfsales = download_fundamental(
+        mongo_conn_str, tickers, from_year, fields
+    )
+    dfsales = pd.read_parquet('sales_new.parquet').sort_index()
+    dfsales.index.names = ['TICKER', 'DATETIME']
+
+    if end_date:
+        dfsales = dfsales[dfsales.index.get_level_values('DATETIME') <= end_date]
 
     # conv yoy
     dfsales = log_diff(dfsales, periods=4)
