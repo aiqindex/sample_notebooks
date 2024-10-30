@@ -3,11 +3,19 @@ import numpy as np
 import pandas as pd
 from ..path import DEFAULT_DIR
 
+
+def replace_ns_datetime(df):
+    df = df.reset_index()
+    df['DATETIME'] = pd.to_datetime(df['DATETIME']).astype('datetime64[ns]')
+    df = df.set_index(['TICKER', 'DATETIME'])
+    return df
+
 def register_pos_data(sdh, data_dir=DEFAULT_DIR):
     # Using existing data for reducing the amount of time for loading.
     pos_df0 = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_sample_index_shift.parquet'), engine='pyarrow')
     pos_df0 = pos_df0[~pos_df0.index.get_level_values('ticker').isnull()]
     pos_df0.index.names = ['TICKER', 'DATETIME']
+    pos_df0 = replace_ns_datetime(pos_df0)
     data_id_pos = sdh.set_raw_data(pos_df0, data_source='ALTERNATIVE', source='aiq_pos_csmr_goods')
     return data_id_pos
     
@@ -16,6 +24,7 @@ def register_market_prices(sdh, data_dir=DEFAULT_DIR):
     prices_df = pd.read_parquet(os.path.join(data_dir, 'aiq_pos_csmr_goods_mkt_long.parquet'), engine='pyarrow')
     prices_df = prices_df[~prices_df.index.get_level_values('ticker').isnull()]
     prices_df.index.names = ['TICKER', 'DATETIME']
+    prices_df = replace_ns_datetime(prices_df)
     data_id_price = sdh.set_raw_data(prices_df, data_source='FACTSET', source='gpd_prices')
     return data_id_price
     
@@ -25,6 +34,7 @@ def register_tv(sdh, data_dir=DEFAULT_DIR):
 
     merged_tv = merged_tv[~merged_tv.index.get_level_values('ticker').isnull()]
     merged_tv.index.names = ['TICKER', 'DATETIME']
+    merged_tv = replace_ns_datetime(merged_tv)
     data_id_tv = sdh.set_raw_data(merged_tv, data_source='FACTSET', source='TrueValue')
     return data_id_tv
 
@@ -33,6 +43,7 @@ def register_quants_factors(sdh, list_tickers=None, use_dump=True, data_dir=DEFA
 
     factors266 = factors266[~factors266.index.get_level_values('ticker').isnull()]
     factors266.index.names = ['TICKER', 'DATETIME']
+    factors266 = replace_ns_datetime(factors266)
     data_id_f266 = sdh.set_raw_data(factors266, data_source='FACTSET', source='Quants factors')
     return data_id_f266
     
