@@ -60,6 +60,11 @@ def register_market(
     df_mkt = read_s3(DEFAULT_BUCKET, filename)
 
     df_mkt = index_to_upper(df_mkt)
+
+    df_mkt = df_mkt.reset_index()
+    df_mkt['DATETIME'] = pd.to_datetime(df_mkt['DATETIME']).astype('datetime64[ns]')
+    df_mkt = df_mkt.set_index(['TICKER', 'DATETIME'])
+
     data_id = sdh.set_raw_data(df_mkt)
         
     sdh.set_alias({data_id: alias})
@@ -114,6 +119,10 @@ def register_fundamental(
     dfsales = read_s3(DEFAULT_BUCKET, filename)
 
     dfsales = index_to_upper(dfsales)
+    dfsales = dfsales.reset_index()
+    dfsales['DATETIME'] = pd.to_datetime(dfsales['DATETIME']).astype('datetime64[ns]')
+    dfsales = dfsales.set_index(['TICKER', 'DATETIME'])
+
     data_id = sdh.set_raw_data(dfsales)
     sdh.set_alias({data_id: 'funda'})
     return data_id
@@ -138,10 +147,13 @@ def get_adj_close(
     dfinput: pd.DataFrame,
     list_tickers: list
 ) -> pd.DataFrame:
-    dfclose = dfinput[['Ticker', 'DATE', 'Close Price', 'Split Factor', 'Div Factor']].copy()
+    dfclose = dfinput[['Ticker', 'DATE', 'Open Price', 'High Price', 'Low Price', 'Close Price', 'Split Factor', 'Div Factor']].copy()
     dfclose = dfclose.rename(columns={
         'Ticker': 'ticker',
         'DATE': 'datetime',
+        'Open Price': 'open',
+        'High Price': 'high',
+        'Low Price': 'low',
         'Close Price': 'close',
         'Split Factor': 'split_ratio',
         'Div Factor': 'div_ratio'
@@ -149,16 +161,21 @@ def get_adj_close(
     dfclose['ticker'] = dfclose['ticker'].apply(lambda x: x[:4])
     dfclose = dfclose.loc[dfclose['ticker'].isin(list_tickers)]
     dfclose = dfclose.set_index(['ticker', 'datetime'])
+    dfclose['adj_open'] = dfclose['open'] * dfclose['split_ratio'] * dfclose['div_ratio']
+    dfclose['adj_high'] = dfclose['high'] * dfclose['split_ratio'] * dfclose['div_ratio']
+    dfclose['adj_low'] = dfclose['low'] * dfclose['split_ratio'] * dfclose['div_ratio']
     dfclose['adj_close'] = dfclose['close'] * dfclose['split_ratio'] * dfclose['div_ratio']
-    return dfclose[['adj_close', 'close']]
+    return dfclose[['adj_open', 'adj_high', 'adj_low', 'adj_close']]
 
 
 def reload_market_to_s3(
     tickers: List[str],
+    extract_dir = '/efs/share/data/extract/',
     s3filename: str = "common/market_return.parquet",
+    upload: bool = True
 ):
 
-    extract_dir = '/efs/share/data/extract/'
+    
     list_extracts = [join(extract_dir, f) for f in listdir(extract_dir) if isfile(join(extract_dir, f))]
     list_extracts.sort()
     list_extracts
@@ -171,7 +188,7 @@ def reload_market_to_s3(
     # list_data_sci
 
     list_data = []
-    for fl in list_extracts:
+    for fl in list_data_extracts:
         dftmp = pd.read_parquet(fl, engine='pyarrow')
         list_data.append(dftmp)
     dfdata = pd.concat(list_data, axis=0, sort=False)
@@ -180,25 +197,29 @@ def reload_market_to_s3(
     df_mkt_raw = get_adj_close(dfdata, tickers)
     df_mkt_raw.index.names = ['TICKER', 'DATETIME']
     df_mkt_raw = df_mkt_raw.loc[~df_mkt_raw.index.duplicated()]
+    df_mkt_raw = df_mkt_raw.loc[~df_mkt_raw.index.get_level_values('DATETIME').isnull()]
 
     # transformation to returns
     tmpsdh = DAL()
     tmp_data_id = tmpsdh.set_raw_data(df_mkt_raw)
 
-    # logs = tmpsdh.transform.log(data_id=tmp_data_id, fields=['close', 'open'], names=['log_close', 'log_open']).variable_ids
-    # logs_prev = tmpsdh.transform.shift(1, fields=['log_close', 'log_open'], names=['log_close_prev', 'log_open_prev']).variable_ids
+    logs = tmpsdh.transform.log(data_id=tmp_data_id, fields=['adj_close', 'adj_open'], names=['log_close', 'log_open']).variable_ids
+    logs_prev = tmpsdh.transform.shift(1, fields=['log_close', 'log_open'], names=['log_close_prev', 'log_open_prev']).variable_ids
 
     returns = tmpsdh.transform.log_diff(1, data_id=tmp_data_id, fields='adj_close', names='returns').variable_ids[0]  # close(t2) - close(t1) 
-    # returns_oo = tmpsdh.transform.log_diff(1, data_id=tmp_data_id, fields='open', names='returns_oo').variable_ids[0] # open(t2) - open(t1) 
-    # returns_id = tmpsdh.transform.sub(x1field='log_close', x2field='log_open', name='returns_id').variable_ids[0] # close(t1) - open(t1) 
-    # return_on = tmpsdh.transform.sub(x1field='log_open', x2field='log_close_prev', name='returns_on').variable_ids[0] # open(t2) - close(t1) 
+    returns_oo = tmpsdh.transform.log_diff(1, data_id=tmp_data_id, fields='adj_open', names='returns_oo').variable_ids[0] # open(t2) - open(t1) 
+    returns_id = tmpsdh.transform.sub(x1field='log_close', x2field='log_open', name='returns_id').variable_ids[0] # close(t1) - open(t1) 
+    return_on = tmpsdh.transform.sub(x1field='log_open', x2field='log_close_prev', name='returns_on').variable_ids[0] # open(t2) - close(t1) 
 
-    # df_mkt = tmpsdh.get_variables([returns, returns_oo, returns_id, return_on])
-    df_mkt = tmpsdh.get_variables([returns])
-    to_s3(df_mkt, DEFAULT_BUCKET, s3filename)
+    df_mkt = tmpsdh.get_variables([returns, returns_oo, returns_id, return_on])
+    # df_mkt = tmpsdh.get_variables([returns])
+    if upload:
+        to_s3(df_mkt, DEFAULT_BUCKET, s3filename)
 
     # if efsfilename:
     #     df_mkt_raw.to_parquet(efsfilename)
+
+    return dfdata, df_mkt
 
 
 def reload_fundamental_to_s3(
