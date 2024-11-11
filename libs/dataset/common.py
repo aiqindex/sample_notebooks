@@ -39,7 +39,8 @@ def extract_tickers(sdh, data_ids):
 
 def register_market(
     sdh: StdDataHandler,
-    filename: str = "common/market_return.parquet"
+    filename: str = "common/market_return.parquet",
+    filt_data_id: int = None
 ) -> int:
     """
     Register market data into the handler.
