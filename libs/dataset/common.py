@@ -10,19 +10,11 @@ from aiq_strategy_robot.data.data_accessor import StdDataHandler
 from asr_protected.data_transformer.variable_libs import log_diff
 
 from ..downloader.fundamental import download_fundamental
+from ..downloader.market import download_market_from_influx
 from ..utils import index_to_upper
 from ..path import DEFAULT_DIR
 from ..s3 import to_s3, read_s3, DEFAULT_BUCKET
 
-
-def read_pos_csmr_goods_plus_sales_share(
-    filename: str = "common/pos_csmr_goods_plus_sales_share_ts.csv",
-):
-    share_ts = read_s3(DEFAULT_BUCKET, filename)
-    share_ts['TICKER'] = share_ts['seccode'].map(str)
-    share_ts['DATETIME'] = pd.to_datetime(share_ts['datetime'])
-    share_ts = share_ts.set_index(['TICKER', 'DATETIME']).sort_index()
-    return share_ts
 
 def extract_tickers(sdh, data_ids):
 
