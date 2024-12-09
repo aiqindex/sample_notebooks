@@ -220,15 +220,15 @@ def reload_market_to_s3(
     returns_id = tmpsdh.transform.sub(x1field='log_close', x2field='log_open', name='returns_id').variable_ids[0] # close(t1) - open(t1) 
     return_on = tmpsdh.transform.sub(x1field='log_open', x2field='log_close_prev', name='returns_on').variable_ids[0] # open(t2) - close(t1) 
 
-    df_mkt = tmpsdh.get_variables([returns, returns_oo, returns_id, return_on])
+    df_ret = tmpsdh.get_variables([returns, returns_oo, returns_id, return_on])
     # df_mkt = tmpsdh.get_variables([returns])
     if upload:
-        to_s3(df_mkt, DEFAULT_BUCKET, s3filename)
+        to_s3(df_ret, DEFAULT_BUCKET, s3filename)
 
     # if efsfilename:
     #     df_mkt_raw.to_parquet(efsfilename)
 
-    return dfdata, df_mkt
+    return dfdata, df_mkt_raw, df_ret
 
 
 def reload_fundamental_to_s3(
