@@ -7,6 +7,7 @@ from aiq_strategy_robot.data.ALTERNATIVE import load_alternative_aiq_pos_csmr_go
 
 from ..path import DEFAULT_DIR
 from .utils import format_pos
+from ..s3 import to_s3, read_s3, DEFAULT_BUCKET
 
 FILE_NAME = 'pos_csmr_goods_stack.parquet'
 FILE_NAME_GEN1 = 'pos_csmr_goods_stack_gen1.parquet'
@@ -88,3 +89,16 @@ def read_file(data_dir=DEFAULT_DIR):
     df_inc1 = pd.read_parquet(os.path.join(data_dir, FILE_NAME_GEN1), engine='pyarrow')
     df_inc2 = pd.read_parquet(os.path.join(data_dir, FILE_NAME_GEN2), engine='pyarrow')
     return df_inc1, df_inc2
+
+
+def read_pos_csmr_goods_plus_sales_share():
+
+    share_ts = read_s3(DEFAULT_BUCKET, 'common/pos_csmr_goods_plus_sales_share_ts.csv')
+
+    # POSのシェア率(時系列)
+    # share_ts = pd.read_excel('20241003_pos_csmr_goods_plus_sales_share_ts.xlsx')
+    share_ts['seccode'] = share_ts['seccode'].map(str)
+    share_ts['datetime'] = pd.to_datetime(share_ts['datetime'])
+    share_ts = share_ts.set_index(['seccode', 'datetime']).sort_index()
+    return share_ts
+
