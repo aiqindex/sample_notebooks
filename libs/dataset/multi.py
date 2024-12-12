@@ -57,11 +57,11 @@ def make_baseline(sdh, data_id_price, data_id_f266, data_id_tv, data_id_pos, X_s
     # FTech
     closed_resampled = sdh.transform.resample(data_id=data_id_price, fields='close', rule=resample_term, func='last', label='left', closed='left').dropna().variable_ids
     FTech_Ret001_id = sdh.transform.log_diff(fields=closed_resampled, periods=1
-                                            ).mul_by_val(value=100).shift(periods=X_shift).variable_ids # 1週リターン
+                                            ).mul_val(value=100).shift(periods=X_shift).variable_ids # 1週リターン
     FTech_Ret004_id = sdh.transform.log_diff(fields=closed_resampled, periods=4
-                                            ).mul_by_val(value=100).shift(periods=X_shift).variable_ids # 4週リターン
+                                            ).mul_val(value=100).shift(periods=X_shift).variable_ids # 4週リターン
     FTech_Volatility052_id = sdh.transform.log_diff(fields=closed_resampled, periods=1
-                     ).volatility(periods=52).mul_by_val(value=100).shift(periods=X_shift).variable_ids # 52週ボラティリティ
+                     ).volatility(periods=52).mul_val(value=100).shift(periods=X_shift).variable_ids # 52週ボラティリティ
     
     # baselines.extend(FTech_Ret001_id+FTech_Ret004_id+FTech_Volatility052_id)
 

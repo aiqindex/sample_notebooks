@@ -31,7 +31,8 @@ def extract_tickers(sdh, data_ids):
 
 def register_market(
     sdh: StdDataHandler,
-    filename: str = "common/market_return.parquet"
+    filename: str = "common/market_return.parquet",
+    filt_data_id: int = None
 ) -> int:
     """
     Register market data into the handler.
@@ -145,7 +146,6 @@ def get_matching_files(directory, pattern):
 
 def get_adj_close(
     dfinput: pd.DataFrame,
-    list_tickers: list
 ) -> pd.DataFrame:
     dfclose = dfinput[['Ticker', 'DATE', 'Open Price', 'High Price', 'Low Price', 'Close Price', 'Split Factor', 'Div Factor']].copy()
     dfclose = dfclose.rename(columns={
@@ -159,7 +159,7 @@ def get_adj_close(
         'Div Factor': 'div_ratio'
     })
     dfclose['ticker'] = dfclose['ticker'].apply(lambda x: x[:4])
-    dfclose = dfclose.loc[dfclose['ticker'].isin(list_tickers)]
+    # dfclose = dfclose.loc[dfclose['ticker'].isin(list_tickers)]
     dfclose = dfclose.set_index(['ticker', 'datetime'])
     dfclose['adj_open'] = dfclose['open'] * dfclose['split_ratio'] * dfclose['div_ratio']
     dfclose['adj_high'] = dfclose['high'] * dfclose['split_ratio'] * dfclose['div_ratio']
@@ -169,7 +169,6 @@ def get_adj_close(
 
 
 def reload_market_to_s3(
-    tickers: List[str],
     extract_dir = '/efs/share/data/extract/',
     s3filename: str = "common/market_return.parquet",
     upload: bool = True
@@ -194,7 +193,7 @@ def reload_market_to_s3(
     dfdata = pd.concat(list_data, axis=0, sort=False)
     dfdata.head() 
 
-    df_mkt_raw = get_adj_close(dfdata, tickers)
+    df_mkt_raw = get_adj_close(dfdata)
     df_mkt_raw.index.names = ['TICKER', 'DATETIME']
     df_mkt_raw = df_mkt_raw.loc[~df_mkt_raw.index.duplicated()]
     df_mkt_raw = df_mkt_raw.loc[~df_mkt_raw.index.get_level_values('DATETIME').isnull()]
@@ -211,15 +210,15 @@ def reload_market_to_s3(
     returns_id = tmpsdh.transform.sub(x1field='log_close', x2field='log_open', name='returns_id').variable_ids[0] # close(t1) - open(t1) 
     return_on = tmpsdh.transform.sub(x1field='log_open', x2field='log_close_prev', name='returns_on').variable_ids[0] # open(t2) - close(t1) 
 
-    df_mkt = tmpsdh.get_variables([returns, returns_oo, returns_id, return_on])
+    df_ret = tmpsdh.get_variables([returns, returns_oo, returns_id, return_on])
     # df_mkt = tmpsdh.get_variables([returns])
     if upload:
-        to_s3(df_mkt, DEFAULT_BUCKET, s3filename)
+        to_s3(df_ret, DEFAULT_BUCKET, s3filename)
 
     # if efsfilename:
     #     df_mkt_raw.to_parquet(efsfilename)
 
-    return dfdata, df_mkt
+    return dfdata, df_mkt_raw, df_ret
 
 
 def reload_fundamental_to_s3(
