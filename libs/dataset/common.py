@@ -31,8 +31,8 @@ def extract_tickers(sdh, data_ids):
 
 def register_market(
     sdh: StdDataHandler,
+    tickers = None,
     filename: str = "common/market_return.parquet",
-    filt_data_id: int = None
 ) -> int:
     """
     Register market data into the handler.
@@ -63,6 +63,9 @@ def register_market(
     df_mkt = index_to_upper(df_mkt)
 
     df_mkt = df_mkt.reset_index()
+
+    if tickers:
+        df_mkt = df_mkt[df_mkt['TICKER'].isin(tickers)]
     df_mkt['DATETIME'] = pd.to_datetime(df_mkt['DATETIME']).astype('datetime64[ns]')
     df_mkt = df_mkt.set_index(['TICKER', 'DATETIME'])
 
