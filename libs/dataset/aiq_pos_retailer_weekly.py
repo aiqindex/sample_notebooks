@@ -20,14 +20,11 @@ def register_retailer_data(
         sdh,
         data_dir=DEFAULT_DIR,
         f_ticker_cvt: Optional[Callable[[str], str]] = None,
-        db_name: str = None,
-        schema_name: str = None,
-        start_date=None,
-        end_date=None,
+        filename: str = FILE_NAME
 ) -> int:
 
     # loading from csv to save time for this demo
-    df_pos = read_s3(DEFAULT_BUCKET, FILE_NAME)
+    df_pos = read_s3(DEFAULT_BUCKET, filename)
 
     # TODO: loaderから取得
     # print('extract pos_retailer_weekly by loader..')
@@ -42,7 +39,7 @@ def register_retailer_data(
         source='sample'
     )
 
-    sdh.set_alias({data_id: 'SCI'})
+    sdh.set_alias({data_id: 'pos_retailer_weekly'})
     return data_id
 
 
@@ -80,9 +77,10 @@ def transform_dfsci(dfsci):
     dftx = pd.concat([dftx, pos_sales_WoW, pos_sales_MoM, pos_sales_QoQ, pos_sales_SYoSY, pos_sales_YoY, share_WoW, share_MoM, share_QoQ, share_SYoSY, share_YoY], axis=1)
     return dftx
 
+basedir = '/efs/share/BItool/pos_retailer_weekly/bulk/%s'
 
-def load_sci_weekly_data(baseline='20241016'):
-    basedir = '/efs/share/BItool/pos_retailer_weekly/bulk/%s'
+def load_sci_weekly_data(basedir=basedir, baseline='20241016'):
+    
     tardir = basedir % baseline
     dfsci_latest = load_sci_csv2(tardir)
     dfsci_latest = transform_dfsci(dfsci_latest)
