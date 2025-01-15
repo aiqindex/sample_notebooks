@@ -10,7 +10,6 @@ from aiq_strategy_robot.data.data_accessor import StdDataHandler
 from asr_protected.data_transformer.variable_libs import log_diff
 
 from ..downloader.fundamental import download_fundamental
-from ..downloader.market import download_market_from_influx
 from ..utils import index_to_upper
 from ..path import DEFAULT_DIR
 from ..s3 import to_s3, read_s3, DEFAULT_BUCKET
