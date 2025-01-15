@@ -21,7 +21,7 @@ def register_retailer_data(
     end_date=None,
 ) -> int:
 
-    print('extract pos_retailer by loader..')
+    print('extract retailer weekly by loader..')
     df_pos = read_by_laoder(start_date, end_date, db_name=db_name, schema_name=schema_name)
 
     if f_ticker_cvt is not None:
@@ -33,7 +33,7 @@ def register_retailer_data(
         source='sample'
     )
 
-    sdh.set_alias({data_id: 'pos_retailer_weekly'})
+    sdh.set_alias({data_id: 'retailer_weekly'})
     return data_id
 
 def read_by_laoder(start_date=None, end_date=None, db_name=None, schema_name=None):
