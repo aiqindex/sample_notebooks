@@ -9,11 +9,16 @@ from tqdm.notebook import tqdm
 from aiq_strategy_robot.data.data_accessor import DAL
 from aiq_strategy_robot.data.ALTERNATIVE import load_alternative_aiq_retailer_weekly_data
 
+from ..path import DEFAULT_DIR
+
 ENV_DATABSE = 'TRIAL_SNOWFLAKE_DATABASE_AIQ_RETAILER_WEEKLY'
+
+FILE_NAME = 'retailer_weekly_stack.parquet'
 
 # Load Alternative Data
 def register_retailer_data(
     sdh,
+    data_dir: str = DEFAULT_DIR,
     f_ticker_cvt: Optional[Callable[[str], str]] = None,
     db_name: str = None,
     schema_name: str = None,
@@ -21,8 +26,13 @@ def register_retailer_data(
     end_date=None,
 ) -> int:
 
-    print('extract retailer weekly by loader..')
-    df_pos = read_by_laoder(start_date, end_date, db_name=db_name, schema_name=schema_name)
+    try:
+        # loading from csv to save time for this demo
+        df_pos = read_file(data_dir)
+    except:
+
+        print('extract retailer weekly by loader..')
+        df_pos = read_by_laoder(start_date, end_date, db_name=db_name, schema_name=schema_name)
 
     if f_ticker_cvt is not None:
         df_pos.index = pd.MultiIndex.from_tuples([(f_ticker_cvt(i[0]), i[1]) for i in df_pos.index], names=df_pos.index.names)
@@ -70,3 +80,8 @@ def aggregate_dfsci(dfsci):
 def transform_dfsci(dfsci):
     dftx = dfsci['VALUE'].unstack(['VARIABLE', 'SMOOTH'])
     return dftx
+
+
+def read_file(data_dir=DEFAULT_DIR):
+    # loading from csv to save time for this demo
+    return pd.read_parquet(os.path.join(data_dir, FILE_NAME), engine='pyarrow')

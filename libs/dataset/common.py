@@ -15,23 +15,18 @@ from ..path import DEFAULT_DIR
 from ..s3 import to_s3, read_s3, DEFAULT_BUCKET
 
 
-def extract_tickers(sdh, data_ids):
+MKT_FILES_MAP = {
+    'csmr_goods': 'common/market_return_for_csmr.parquet',
+    'elec_goods': 'common/market_return_for_elec.parquet',
+    'retailer_monthly': 'common/market_return_for_retailer_monthly.parquet',
+    'retailer_weekly': 'common/market_return_for_retailer_weekly.parquet',
+    'geolocation': 'common/market_return_for_geo.parquet'
+}
 
-    tickers = []
-    start_dates = []
-    for data_id in data_ids:
-        df_base = sdh.get_raw_data(data_id)
-        tickers_ = df_base.index.get_level_values('TICKER').unique().to_list()
-        tickers.extend(tickers_)
-        start_date = df_base.index.get_level_values('DATETIME').min().strftime('%Y-%m-%d')
-        start_dates.append(start_date) 
-
-    return list(set(tickers))
 
 def register_market(
     sdh: StdDataHandler,
-    tickers = None,
-    filename: str = "common/market_return.parquet",
+    target: str
 ) -> int:
     """
     Register market data into the handler.
@@ -54,8 +49,9 @@ def register_market(
     int
         The data ID registered in the handler.
     """
+    filename = MKT_FILES_MAP[target]
 
-    alias = 'market_returns'
+    alias = 'market_returns for '+target
     # print('extract mkt data from s3..')
     df_mkt = read_s3(DEFAULT_BUCKET, filename)
 
@@ -63,8 +59,6 @@ def register_market(
 
     df_mkt = df_mkt.reset_index()
 
-    if tickers:
-        df_mkt = df_mkt[df_mkt['TICKER'].isin(tickers)]
     df_mkt['DATETIME'] = pd.to_datetime(df_mkt['DATETIME']).astype('datetime64[ns]')
     df_mkt = df_mkt.set_index(['TICKER', 'DATETIME'])
 
@@ -172,8 +166,8 @@ def get_adj_close(
 
 def reload_market_to_s3(
     extract_dir = '/efs/share/data/extract/',
-    s3filename: str = "common/market_return.parquet",
-    upload: bool = True
+    tickers: list[str] = None,
+    upload_filename: bool = True,
 ):
 
     
@@ -200,6 +194,9 @@ def reload_market_to_s3(
     df_mkt_raw = df_mkt_raw.loc[~df_mkt_raw.index.duplicated()]
     df_mkt_raw = df_mkt_raw.loc[~df_mkt_raw.index.get_level_values('DATETIME').isnull()]
 
+    if tickers:
+        df_mkt_raw = df_mkt_raw.loc[df_mkt_raw.index.get_level_values('TICKER').isin(tickers)]
+
     # transformation to returns
     tmpsdh = DAL()
     tmp_data_id = tmpsdh.set_raw_data(df_mkt_raw)
@@ -214,11 +211,8 @@ def reload_market_to_s3(
 
     df_ret = tmpsdh.get_variables([returns, returns_oo, returns_id, return_on])
     # df_mkt = tmpsdh.get_variables([returns])
-    if upload:
-        to_s3(df_ret, DEFAULT_BUCKET, s3filename)
-
-    # if efsfilename:
-    #     df_mkt_raw.to_parquet(efsfilename)
+    if upload_filename:
+        to_s3(df_ret, DEFAULT_BUCKET, upload_filename)
 
     return dfdata, df_mkt_raw, df_ret
 
