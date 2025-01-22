@@ -39,7 +39,8 @@ def read_foot_traffic_place(
     geo_car['DATETIME'] = pd.to_datetime(geo_car['DATETIME'])
     dfgeo = geo_car.groupby(['TICKER', 'DATETIME', 'VARIABLE'])['VALUE'].sum()
     dfgeo = dfgeo.unstack('VARIABLE')
-    dfgeo = dfgeo.loc[dfgeo.index.get_level_values('TICKER').isin(tickers)]
+    if tickers:
+        dfgeo = dfgeo.loc[dfgeo.index.get_level_values('TICKER').isin(tickers)]
     return dfgeo
 
 
