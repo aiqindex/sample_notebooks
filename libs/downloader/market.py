@@ -30,7 +30,9 @@ def download_market_from_mongo(
 
 def download_market_from_influx(
         conf_path: str, 
-        tickers: list, start_date=None, end_date=None, 
+        tickers: list, 
+        start_date=None, 
+        end_date=None, 
 ):
     # 価格データの更新を行う場合は、README
     from load_data_from_influxdb.TRIN_price_data_handler import TRINPriceLoader as TRIN
